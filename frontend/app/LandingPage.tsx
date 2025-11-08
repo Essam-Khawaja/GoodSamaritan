@@ -1,16 +1,23 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router'; // 👈 import router
 
 export default function LandingPage() {
+  const router = useRouter(); // 👈 initialize router
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>GoodSamaritan</Text>
 
       {/* Samaritan Buttons */}
       <View style={styles.row}>
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push('/becomeSamaritan')} // 👈 navigate to signup page
+        >
           <Text style={styles.buttonText}>Become a Samaritan</Text>
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Returning Samaritan</Text>
         </TouchableOpacity>
@@ -32,22 +39,22 @@ export default function LandingPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fbfaf2', // 🌼 warm cream background
-    justifyContent: 'center',   // ✅ centers vertically
-    alignItems: 'center',       // ✅ centers horizontally
+    backgroundColor: '#fbfaf2',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1bb998', 
+    color: '#1bb998',
     marginBottom: 50,
-    textAlign: 'center', 
+    textAlign: 'center',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center', 
+    alignItems: 'center',
     marginBottom: 20,
   },
   button: {
@@ -58,7 +65,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     width: 160,
     alignItems: 'center',
-    justifyContent: 'center', 
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
@@ -69,6 +76,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#fbfaf2',
-    textAlign: 'center', 
+    textAlign: 'center',
   },
 });
