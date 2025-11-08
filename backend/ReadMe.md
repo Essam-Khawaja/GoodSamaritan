@@ -8,6 +8,7 @@ User: {
     userID: string
     email: string
     password: string
+    name: string
     userStats: {
         elo: int
         rank: int
@@ -22,8 +23,10 @@ Org: {
     orgID: string
     email: string
     password: string
+    name: string
 }
 ```
+
 ```typescript
 Tasks: {
     taskID: string
@@ -32,7 +35,9 @@ Tasks: {
     latitude: float
     longitude: float
     elo: int
-    org: string
-    time: str
+    orgID: string
+    userID: string
+    time: string 
+    status: int (0: Incomplete, 1: In Progress, 2: Complete, 3: Available)
 }
 ```
