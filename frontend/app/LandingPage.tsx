@@ -1,19 +1,18 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router'; // 👈 import router
+import { useRouter } from 'expo-router'; 
 
 export default function LandingPage() {
-  const router = useRouter(); // 👈 initialize router
+  const router = useRouter(); 
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>GoodSamaritan</Text>
-
       {/* Samaritan Buttons */}
       <View style={styles.row}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/becomeSamaritan')} // 👈 navigate to signup page
+          onPress={() => router.push('/becomeSamaritan')}
         >
           <Text style={styles.buttonText}>Become a Samaritan</Text>
         </TouchableOpacity>
@@ -25,8 +24,11 @@ export default function LandingPage() {
 
       {/* Organization Buttons */}
       <View style={styles.row}>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>New Organization</Text>
+        <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push('/newOrganization')}
+            >
+            <Text style={styles.buttonText}>New Organization</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Returning Organization</Text>
