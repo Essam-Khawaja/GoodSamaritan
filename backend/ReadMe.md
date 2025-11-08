@@ -25,13 +25,14 @@ Org: {
 }
 ```
 ```typescript
-tasks: {
-        title: string
-        description: string
-        latitude: float
-        longitude: float
-        elo: int
-        org: string
-        time: str
-    }
+Tasks: {
+    taskID: string
+    title: string
+    description: string
+    latitude: float
+    longitude: float
+    elo: int
+    org: string
+    time: str
+}
 ```
