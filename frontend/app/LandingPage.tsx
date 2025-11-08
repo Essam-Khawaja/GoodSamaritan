@@ -16,9 +16,13 @@ export default function LandingPage() {
           <Text style={styles.buttonText}>Become a Samaritan</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Returning Samaritan</Text>
+        <TouchableOpacity
+        style={styles.button}
+        onPress={() => router.push('/returningSamaritan')}
+        >
+        <Text style={styles.buttonText}>Returning Samaritan</Text>
         </TouchableOpacity>
+
       </View>
 
       {/* Organization Buttons */}
@@ -29,8 +33,11 @@ export default function LandingPage() {
             >
             <Text style={styles.buttonText}>New Organization</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Returning Organization</Text>
+        <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push('/returningOrganization')}
+            >
+            <Text style={styles.buttonText}>Returning Organization</Text>
         </TouchableOpacity>
       </View>
     </View>
