@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function NewOrganization() {
@@ -11,80 +11,96 @@ export default function NewOrganization() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>New Organization</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.container}>
+          <Text style={styles.title}>New Organization</Text>
 
-      {/* Input Fields */}
-      <TextInput
-        style={styles.input}
-        placeholder="Organization Name"
-        value={orgName}
-        onChangeText={setOrgName}
-        placeholderTextColor="#7a7a7a"
-      />
+          {/* Input Fields */}
+          <TextInput
+            style={styles.input}
+            placeholder="Organization Name"
+            value={orgName}
+            onChangeText={setOrgName}
+            placeholderTextColor="#7a7a7a"
+          />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Contact Email"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        placeholderTextColor="#7a7a7a"
-      />
+          <TextInput
+            style={styles.input}
+            placeholder="Contact Email"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            placeholderTextColor="#7a7a7a"
+          />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        placeholderTextColor="#7a7a7a"
-      />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            placeholderTextColor="#7a7a7a"
+          />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Re-enter Password"
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        placeholderTextColor="#7a7a7a"
-      />
+          <TextInput
+            style={styles.input}
+            placeholder="Re-enter Password"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholderTextColor="#7a7a7a"
+          />
 
-      {/* Register Button */}
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
+          {/* Register Button */}
+          <TouchableOpacity style={styles.button}>
+            <Text style={styles.buttonText}>Register</Text>
+          </TouchableOpacity>
 
-      {/* Go back link */}
-      <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
-        <Text style={styles.backText}>← Back to Home</Text>
-      </TouchableOpacity>
-    </View>
+          {/* Go back link */}
+          <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+            <Text style={styles.backText}>← Back to Home</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F4E6CD', // 🌼 warm cream background
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+    paddingVertical: 60, 
+    backgroundColor: '#fbfaf2',
+  },
+  container: {
+    width: '90%',
+    alignItems: 'center',
+    backgroundColor: '#fbfaf2',
+    paddingHorizontal: 10, 
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#3E6650', // deep green for title contrast
+    color: '#1bb998',
     marginBottom: 40,
     textAlign: 'center',
   },
   input: {
     width: '100%',
     backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingVertical: 14, 
+    paddingHorizontal: 20,
     borderRadius: 10,
-    marginBottom: 15,
+    marginBottom: 18,
     fontSize: 16,
     color: '#000',
     shadowColor: '#000',
@@ -93,16 +109,15 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
 
-    // 💚 thin green border
     borderWidth: 0.5,
     borderColor: '#1bb998',
   },
   button: {
-    backgroundColor: '#B4DEBD', // 💚 soft green register button
+    backgroundColor: '#1bb998',
     borderRadius: 25,
     paddingVertical: 14,
-    paddingHorizontal: 40,
-    marginTop: 10,
+    paddingHorizontal: 60, 
+    marginTop: 15,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -113,13 +128,13 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
+    color: '#fbfaf2',
   },
   backLink: {
-    marginTop: 20,
+    marginTop: 30, 
   },
   backText: {
-    color: '#3E6650',
+    color: '#1bb998',
     fontWeight: '600',
   },
 });

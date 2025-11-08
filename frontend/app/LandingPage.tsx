@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 
 export default function LandingPage() {
   const router = useRouter(); 
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>GoodSamaritan</Text>
