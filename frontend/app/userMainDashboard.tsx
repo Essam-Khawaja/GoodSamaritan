@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { useRouter } from 'expo-router';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -19,14 +20,15 @@ type Task = {
 
 type DashboardData = {
   username: string;
-  impactScore: number;
+  samaritanScore: number;
   myTasks: Task[];
   availableTasks: Task[];
 };
 
-export default function UserDashboard() {
-  const [username, setUsername] = useState<string>('Loading...');
-  const [impactScore, setImpactScore] = useState<number>(0);
+export default function UserMainDashboard() {
+  const router = useRouter();
+  const [username, setUsername] = useState<string>('Admin');
+  const [samaritanScore, setSamaritanScore] = useState<number>(1234);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function UserDashboard() {
     const fetchDashboardData = async () => {
       const sampleData: DashboardData = {
         username: 'Admin',
-        impactScore: 1234,
+        samaritanScore: 1234,
         myTasks: [
           {
             id: '1',
@@ -80,7 +82,7 @@ export default function UserDashboard() {
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setUsername(sampleData.username);
-      setImpactScore(sampleData.impactScore);
+      setSamaritanScore(sampleData.samaritanScore);
       setMyTasks(sampleData.myTasks);
       setAvailableTasks(sampleData.availableTasks);
     };
@@ -149,10 +151,12 @@ export default function UserDashboard() {
           <Text style={styles.greeting}>Hello,</Text>
           <Text style={styles.username}>{username}</Text>
         </View>
-        <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>Impact Score</Text>
-          <Text style={styles.scoreValue}>{impactScore}</Text>
-        </View>
+        <TouchableOpacity onPress={() => router.push('/userImpactDashboard')}>
+          <View style={styles.scoreBox}>
+            <Text style={styles.scoreLabel}>Samaritan Score</Text>
+            <Text style={styles.scoreValue}>{samaritanScore}</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.sectionTitle}>My Tasks</Text>
@@ -206,21 +210,25 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   scoreBox: {
-    backgroundColor: '#fbfaf2',
+    backgroundColor: '#1bb998',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 20,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
     elevation: 2,
   },
   scoreLabel: {
     fontSize: 14,
-    color: '#444',
+    color: '#fbfaf2',
   },
   scoreValue: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#1bb998',
+    color: '#fbfaf2',
   },
   sectionTitle: {
     fontSize: 20,
@@ -267,7 +275,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   expandedCard: {
-    backgroundColor: '#fbfaf2',
+    backgroundColor: '#f6f6f6',
     borderRadius: 12,
     padding: 14,
     marginBottom: 14,
