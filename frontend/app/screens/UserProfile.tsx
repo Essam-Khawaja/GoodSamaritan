@@ -143,7 +143,8 @@ export default function UserProfileScreen({
   }
 
   // Calculate level and progress
-  const currentElo = userData.userStats.elo || 0;
+  console.log("User ELO:", userData.elo);
+  const currentElo = userData.elo || 0;
   const level = calculateLevel(currentElo);
   const currentLevelElo = getEloForLevel(level);
   const nextLevelElo = getEloForLevel(level + 1);

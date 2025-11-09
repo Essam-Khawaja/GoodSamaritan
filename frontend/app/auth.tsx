@@ -146,12 +146,14 @@ export default function AuthScreen({
           body = JSON.stringify({
             email: formData.email,
             password: formData.password,
+            name: formData.name,
           });
           break;
         case "org-signup":
           body = JSON.stringify({
             email: formData.email,
             password: formData.password,
+            name: formData.name,
           });
           break;
         default:

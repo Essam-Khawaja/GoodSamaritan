@@ -3,8 +3,9 @@ export interface User {
   email: string
   password: string
   name: string
+  elo: number
   userStats: {
-    elo: number
+    // elo: number
     rank: number
     totalTasks: number
     monthTasks: number
