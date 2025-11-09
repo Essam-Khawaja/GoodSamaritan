@@ -7,12 +7,13 @@ import OnboardingScreen from "./onboarding";
 import AuthScreen from "./auth";
 import SplashScreen from "./splashScreen";
 import React from "react";
-// import HomeScreen from "./screens/HomeScreen"
+import HomeScreen from "./screens/HomeScreen";
 // import ProfileScreen from "./screens/ProfileScreen"
 // import LeaderboardScreen from "./screens/LeaderboardScreen"
 // import OrganizationScreen from "./screens/OrganizationScreen"
 // import QuestDetailsModal from "./components/QuestDetailsModal"
-// import type { Quest } from "./types"
+import type { Task } from "./types";
+import LandingPage from "./LandingPage";
 
 type Screen =
   | "splash"
@@ -29,7 +30,7 @@ export default function App() {
     null
   );
   const [user, setUser] = useState<any>(null);
-  //   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null)
+  const [selectedQuest, setSelectedQuest] = useState<Task | null>(null);
 
   useEffect(() => {
     if (currentScreen === "splash") {
@@ -53,9 +54,9 @@ export default function App() {
     setCurrentScreen("onboarding");
   };
 
-  //   const handleQuestSelect = (quest: Quest) => {
-  //     setSelectedQuest(quest)
-  //   }
+  const handleQuestSelect = (quest: Task) => {
+    setSelectedQuest(quest);
+  };
 
   //   const handleCloseModal = () => {
   //     setSelectedQuest(null)
@@ -81,12 +82,12 @@ export default function App() {
           onBack={handleBackToOnboarding}
         />
       )}
-      {/* {currentScreen === "home" && <HomeScreen onQuestSelect={handleQuestSelect} onNavigate={handleNavigate} />}
-      {currentScreen === "profile" && <ProfileScreen onNavigate={handleNavigate} />}
+      {currentScreen === "home" && <LandingPage />}
+      {/* {currentScreen === "profile" && <ProfileScreen onNavigate={handleNavigate} />}
       {currentScreen === "leaderboard" && <LeaderboardScreen onNavigate={handleNavigate} />}
-      {currentScreen === "organization" && <OrganizationScreen onNavigate={handleNavigate} />}
+      {currentScreen === "organization" && <OrganizationScreen onNavigate={handleNavigate} />} */}
 
-      {selectedQuest && <QuestDetailsModal quest={selectedQuest} onClose={handleCloseModal} />} */}
+      {/* {selectedQuest && <QuestDetailsModal quest={selectedQuest} onClose={handleCloseModal} />} */}
     </SafeAreaView>
   );
 }

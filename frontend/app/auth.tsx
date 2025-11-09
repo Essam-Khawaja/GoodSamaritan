@@ -40,7 +40,6 @@ export default function AuthScreen({
   });
 
   const handleAuth = async () => {
-    // Validation
     if (!formData.email || !formData.password) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
@@ -60,25 +59,22 @@ export default function AuthScreen({
     setLoading(true);
 
     try {
-      // API endpoint based on action and user type
       let endpoint = "";
       let reqType = "";
 
       if (isLogin) {
-        //   endpoint =
-        // userType === "civilian"
-        //   ? `${API_BASE_URL}/user-login`
-        //   : `${API_BASE_URL}/org-login`;
+        endpoint =
+          userType === "civilian"
+            ? `${API_BASE_URL}/user-login`
+            : `${API_BASE_URL}/org-login`;
         reqType = userType === "civilian" ? "user-login" : "org-login";
       } else {
-        //   endpoint =
-        // userType === "civilian"
-        //   ? `${API_BASE_URL}/user-signup`
-        //   : `${API_BASE_URL}/org-signup`;
+        endpoint =
+          userType === "civilian"
+            ? `${API_BASE_URL}/user-signup`
+            : `${API_BASE_URL}/org-signup`;
         reqType = userType === "civilian" ? "user-signup" : "org-signup";
       }
-
-      endpoint = `${API_BASE_URL}/user-login`;
 
       let body = JSON.stringify({});
       switch (reqType) {
@@ -119,6 +115,23 @@ export default function AuthScreen({
       });
 
       const data = await response.json();
+
+      // Check for 401 in the response body (Lambda returns statusCode in body)
+      if (data.statusCode === 401 || data.body.success === false) {
+        Alert.alert(
+          "Access Denied",
+          data.message || "Invalid email or password. Please try again."
+        );
+        return;
+      }
+
+      if (response.ok && data.success !== false) {
+        // Success - store user data and navigate to main app
+        console.log("[v0] Auth successful:", data);
+        onAuthSuccess(data.user);
+      } else {
+        Alert.alert("Error", data.message || "Authentication failed");
+      }
 
       if (response.ok) {
         // Success - store user data and navigate to main app
