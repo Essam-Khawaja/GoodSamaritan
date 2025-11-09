@@ -350,12 +350,12 @@ export default function OrganizationScreen({
             </TouchableOpacity>
           </View>
         </ScrollView>
-
+        {/* 
         <BottomNav
           currentScreen="organization"
           onNavigate={onNavigate}
           userType={userType}
-        />
+        /> */}
       </View>
     </SafeAreaView>
   );

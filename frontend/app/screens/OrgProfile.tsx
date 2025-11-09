@@ -6,11 +6,12 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  TouchableOpacity,
 } from "react-native";
-import BottomNav from "../components/BottomNav";
 import type { Org, Task } from "../types";
 import React, { useState, useEffect } from "react";
 import { getUserData } from "../storage";
+import OrgTaskDetailsModal from "../components/OrgTaskDetailsModal";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_AWS_BASE_URL;
 
@@ -27,6 +28,7 @@ export default function OrgProfileScreen({
 }: OrgProfileScreenProps) {
   const [orgData, setOrgData] = useState<Org | null>(null);
   const [createdTasks, setCreatedTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -73,6 +75,43 @@ export default function OrgProfileScreen({
     } catch (error) {
       console.error("Error fetching created tasks:", error);
     }
+  };
+
+  const handleCompleteTask = async (taskID: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/completeTask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskID: taskID,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success !== false) {
+        Alert.alert("Success", "Quest marked as complete!");
+        // Refresh tasks after completing
+        if (orgData?.orgID) {
+          await fetchCreatedTasks(orgData.orgID);
+        }
+      } else {
+        Alert.alert("Error", data.message || "Failed to complete quest");
+      }
+    } catch (error) {
+      console.error("Error completing quest:", error);
+      Alert.alert("Error", "Failed to complete quest. Please try again.");
+    }
+  };
+
+  const handleTaskSelect = (task: Task) => {
+    setSelectedTask(task);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTask(null);
   };
 
   const getStatusInfo = (status: number) => {
@@ -126,9 +165,9 @@ export default function OrgProfileScreen({
               <View style={styles.avatar}>
                 <Text style={styles.avatarEmoji}>🏢</Text>
               </View>
-              <View>
+              <View style={styles.profileInfo}>
                 <Text style={styles.orgName}>{orgData.name}</Text>
-                <Text style={styles.orgTitle}>Verified Organization</Text>
+                <Text style={styles.orgEmail}>{orgData.email}</Text>
               </View>
             </View>
             <View style={styles.verifiedBadge}>
@@ -194,7 +233,12 @@ export default function OrgProfileScreen({
 
           {/* Created Tasks Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>My Created Quests</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Created Quests</Text>
+              <Text style={styles.sectionCount}>
+                {createdTasks.length} total
+              </Text>
+            </View>
 
             {createdTasks.length === 0 ? (
               <View style={styles.emptyState}>
@@ -214,7 +258,12 @@ export default function OrgProfileScreen({
                     {availableTasks.map((task) => {
                       const statusInfo = getStatusInfo(task.status);
                       return (
-                        <View key={task.taskID} style={styles.taskCard}>
+                        <TouchableOpacity
+                          key={task.taskID}
+                          style={styles.taskCard}
+                          onPress={() => handleTaskSelect(task)}
+                          activeOpacity={0.7}
+                        >
                           <View style={styles.taskHeader}>
                             <Text style={styles.taskTitle}>{task.title}</Text>
                             <View
@@ -248,7 +297,7 @@ export default function OrgProfileScreen({
                               {task.longitude.toFixed(4)}
                             </Text>
                           </View>
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                   </>
@@ -262,7 +311,12 @@ export default function OrgProfileScreen({
                     {inProgressTasks.map((task) => {
                       const statusInfo = getStatusInfo(task.status);
                       return (
-                        <View key={task.taskID} style={styles.taskCard}>
+                        <TouchableOpacity
+                          key={task.taskID}
+                          style={styles.taskCard}
+                          onPress={() => handleTaskSelect(task)}
+                          activeOpacity={0.7}
+                        >
                           <View style={styles.taskHeader}>
                             <Text style={styles.taskTitle}>{task.title}</Text>
                             <View
@@ -295,7 +349,7 @@ export default function OrgProfileScreen({
                               👤 User: {task.userID.substring(0, 8)}...
                             </Text>
                           </View>
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                   </>
@@ -309,7 +363,12 @@ export default function OrgProfileScreen({
                     {completedTasks.map((task) => {
                       const statusInfo = getStatusInfo(task.status);
                       return (
-                        <View key={task.taskID} style={styles.taskCard}>
+                        <TouchableOpacity
+                          key={task.taskID}
+                          style={styles.taskCard}
+                          onPress={() => handleTaskSelect(task)}
+                          activeOpacity={0.7}
+                        >
                           <View style={styles.taskHeader}>
                             <Text style={styles.taskTitle}>{task.title}</Text>
                             <View
@@ -342,7 +401,7 @@ export default function OrgProfileScreen({
                               ✅ {new Date(task.time).toLocaleDateString()}
                             </Text>
                           </View>
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                   </>
@@ -356,7 +415,12 @@ export default function OrgProfileScreen({
                     {incompleteTasks.map((task) => {
                       const statusInfo = getStatusInfo(task.status);
                       return (
-                        <View key={task.taskID} style={styles.taskCard}>
+                        <TouchableOpacity
+                          key={task.taskID}
+                          style={styles.taskCard}
+                          onPress={() => handleTaskSelect(task)}
+                          activeOpacity={0.7}
+                        >
                           <View style={styles.taskHeader}>
                             <Text style={styles.taskTitle}>{task.title}</Text>
                             <View
@@ -389,7 +453,7 @@ export default function OrgProfileScreen({
                               📅 {new Date(task.time).toLocaleDateString()}
                             </Text>
                           </View>
-                        </View>
+                        </TouchableOpacity>
                       );
                     })}
                   </>
@@ -399,24 +463,29 @@ export default function OrgProfileScreen({
           </View>
 
           {/* Impact Summary */}
-          <View style={styles.impactCard}>
-            <View style={styles.impactHeader}>
-              <Text style={styles.impactEmoji}>🌟</Text>
-              <Text style={styles.impactTitle}>Organization Impact</Text>
+          {createdTasks.length > 0 && (
+            <View style={styles.impactCard}>
+              <View style={styles.impactHeader}>
+                <Text style={styles.impactEmoji}>🌟</Text>
+                <Text style={styles.impactTitle}>Organization Impact</Text>
+              </View>
+              <Text style={styles.impactText}>
+                Your organization has created {createdTasks.length}{" "}
+                {createdTasks.length === 1 ? "quest" : "quests"}, with{" "}
+                {completedTasks.length} successfully completed. Thank you for
+                making our community better!
+              </Text>
             </View>
-            <Text style={styles.impactText}>
-              Your organization has created {createdTasks.length} quests, with{" "}
-              {completedTasks.length} successfully completed. Thank you for
-              making our community better!
-            </Text>
-          </View>
+          )}
         </ScrollView>
 
-        <BottomNav
-          currentScreen="organization"
-          onNavigate={onNavigate}
-          userType={userType}
-        />
+        {selectedTask && (
+          <OrgTaskDetailsModal
+            task={selectedTask}
+            onClose={handleCloseModal}
+            onComplete={handleCompleteTask}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -459,37 +528,42 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
+    flex: 1,
   },
   avatar: {
     width: 64,
     height: 64,
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarEmoji: {
     fontSize: 32,
   },
+  profileInfo: {
+    flex: 1,
+  },
   orgName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#FFFFFF",
+    marginBottom: 4,
   },
-  orgTitle: {
+  orgEmail: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "rgba(255, 255, 255, 0.9)",
   },
   verifiedBadge: {
-    width: 32,
-    height: 32,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
   verifiedIcon: {
-    fontSize: 18,
+    fontSize: 20,
     color: "#FFFFFF",
     fontWeight: "bold",
   },
@@ -500,7 +574,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    padding: 12,
+    padding: 16,
     borderRadius: 16,
     alignItems: "center",
   },
@@ -513,10 +587,11 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: "#71717A",
+    textAlign: "center",
   },
   content: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9FAFB",
   },
   contentContainer: {
     paddingHorizontal: 24,
@@ -526,9 +601,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E4E4E7",
     marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statsHeader: {
     flexDirection: "row",
@@ -540,8 +618,8 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   statsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "bold",
     color: "#18181B",
   },
   statsGrid: {
@@ -553,12 +631,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: "45%",
     backgroundColor: "#F9FAFB",
-    padding: 12,
+    padding: 16,
     borderRadius: 12,
     alignItems: "center",
   },
   statItemValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#18181B",
     marginBottom: 4,
@@ -570,26 +648,38 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "bold",
     color: "#18181B",
-    marginBottom: 12,
+  },
+  sectionCount: {
+    fontSize: 14,
+    color: "#71717A",
   },
   subsectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
-    color: "#71717A",
-    marginTop: 16,
+    color: "#18181B",
+    marginTop: 8,
     marginBottom: 12,
   },
   taskCard: {
     backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E4E4E7",
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   taskHeader: {
     flexDirection: "row",
@@ -607,9 +697,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
     gap: 4,
   },
   statusIcon: {
@@ -631,12 +721,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   taskElo: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: "#4ADE80",
   },
   taskLocation: {
-    fontSize: 10,
+    fontSize: 11,
     color: "#71717A",
   },
   taskInfo: {
@@ -649,29 +739,35 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: 48,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
   },
   emptyEmoji: {
     fontSize: 48,
     marginBottom: 12,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     color: "#18181B",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     color: "#71717A",
+    textAlign: "center",
   },
   impactCard: {
-    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(59, 130, 246, 0.2)",
     marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   impactHeader: {
     flexDirection: "row",
@@ -680,15 +776,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   impactEmoji: {
-    fontSize: 24,
+    fontSize: 28,
   },
   impactTitle: {
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "bold",
     color: "#18181B",
   },
   impactText: {
-    fontSize: 14,
-    color: "#71717A",
-    lineHeight: 20,
+    fontSize: 15,
+    color: "#52525B",
+    lineHeight: 22,
   },
 });

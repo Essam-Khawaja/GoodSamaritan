@@ -8,21 +8,11 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import BottomNav from "../components/BottomNav";
 import type { User, Task } from "../types";
 import React, { useState, useEffect } from "react";
 import { getUserData, getUserId } from "../storage";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_AWS_BASE_URL;
-
-const BADGES = [
-  { id: 1, name: "First Quest", icon: "🎯", earned: true },
-  { id: 2, name: "Clean Sweep", icon: "🧹", earned: true },
-  { id: 3, name: "Helper Hero", icon: "💪", earned: true },
-  { id: 4, name: "Week Warrior", icon: "⚡", earned: true },
-  { id: 5, name: "Community Champion", icon: "👑", earned: false },
-  { id: 6, name: "Master Quester", icon: "🏆", earned: false },
-];
 
 interface UserProfileScreenProps {
   onNavigate: (
@@ -30,6 +20,16 @@ interface UserProfileScreenProps {
   ) => void;
   userType?: "user" | "org" | null;
 }
+
+// Level system configuration
+const ELO_PER_LEVEL = 100; // Changed from 300 to 100 for more frequent level ups
+const calculateLevel = (elo: number): number => {
+  return Math.floor(elo / ELO_PER_LEVEL) + 1; // Start at level 1
+};
+
+const getEloForLevel = (level: number): number => {
+  return (level - 1) * ELO_PER_LEVEL;
+};
 
 export default function UserProfileScreen({
   onNavigate,
@@ -104,9 +104,7 @@ export default function UserProfileScreen({
         elo: Number(t.elo),
       }));
 
-      const myTasks = normalized;
-
-      setAcceptedTasks(myTasks);
+      setAcceptedTasks(normalized);
     } catch (error) {
       console.error("Error fetching accepted tasks:", error);
     }
@@ -144,12 +142,14 @@ export default function UserProfileScreen({
     );
   }
 
-  const level = Math.floor(userData.userStats.elo / 300);
-  const currentLevelElo = level * 300;
-  const nextLevelElo = (level + 1) * 300;
-  const eloProgress = userData.userStats.elo - currentLevelElo;
+  // Calculate level and progress
+  const currentElo = userData.userStats.elo || 0;
+  const level = calculateLevel(currentElo);
+  const currentLevelElo = getEloForLevel(level);
+  const nextLevelElo = getEloForLevel(level + 1);
+  const eloProgress = currentElo - currentLevelElo;
   const eloNeeded = nextLevelElo - currentLevelElo;
-  const progressPercentage = (eloProgress / eloNeeded) * 100;
+  const progressPercentage = Math.min((eloProgress / eloNeeded) * 100, 100);
 
   const inProgressTasks = acceptedTasks.filter((t) => t.status === 1);
   const completedTasks = acceptedTasks.filter((t) => t.status === 2);
@@ -164,14 +164,14 @@ export default function UserProfileScreen({
               <View style={styles.avatar}>
                 <Text style={styles.avatarEmoji}>👤</Text>
               </View>
-              <View>
+              <View style={styles.profileInfo}>
                 <Text style={styles.userName}>{userData.name}</Text>
-                <Text style={styles.userTitle}>City Champion</Text>
+                <Text style={styles.userEmail}>{userData.email}</Text>
               </View>
             </View>
             <View style={styles.rankBadge}>
               <Text style={styles.rankText}>
-                Rank #{userData.userStats.rank}
+                #{userData.userStats.rank || "N/A"}
               </Text>
             </View>
           </View>
@@ -179,21 +179,20 @@ export default function UserProfileScreen({
           {/* Stats */}
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statValue}>{userData.userStats.elo}</Text>
-              <Text style={styles.statLabel}>Total ELO</Text>
-            </View>
-            <View style={styles.statCard}>
-              <View style={styles.streakValue}>
-                <Text style={styles.streakEmoji}>🔥</Text>
-                <Text style={styles.statValue}>12</Text>
-              </View>
-              <Text style={styles.statLabel}>Day Streak</Text>
+              <Text style={styles.statValue}>{currentElo}</Text>
+              <Text style={styles.statLabel}>ELO Points</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>
-                {userData.userStats.totalTasks}
+                {userData.userStats.totalTasks || 0}
               </Text>
-              <Text style={styles.statLabel}>Quests</Text>
+              <Text style={styles.statLabel}>Total Quests</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                {userData.userStats.monthTasks || 0}
+              </Text>
+              <Text style={styles.statLabel}>This Month</Text>
             </View>
           </View>
         </View>
@@ -206,14 +205,14 @@ export default function UserProfileScreen({
           {/* Level Progress */}
           <View style={styles.levelCard}>
             <View style={styles.levelHeader}>
-              <View>
+              <View style={styles.levelInfo}>
                 <Text style={styles.levelTitle}>Level {level}</Text>
                 <Text style={styles.levelSubtitle}>
                   {eloNeeded - eloProgress} ELO to Level {level + 1}
                 </Text>
               </View>
-              <View style={styles.levelIcon}>
-                <Text style={styles.levelEmoji}>📈</Text>
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelBadgeText}>{level}</Text>
               </View>
             </View>
             <View style={styles.progressBarBg}>
@@ -224,33 +223,64 @@ export default function UserProfileScreen({
                 ]}
               />
             </View>
+            <View style={styles.progressFooter}>
+              <Text style={styles.progressText}>
+                {eloProgress} / {eloNeeded} ELO
+              </Text>
+              <Text style={styles.progressPercent}>
+                {Math.round(progressPercentage)}%
+              </Text>
+            </View>
           </View>
 
-          {/* Month Stats */}
-          <View style={styles.monthCard}>
-            <Text style={styles.monthTitle}>This Month</Text>
-            <Text style={styles.monthValue}>
-              {userData.userStats.monthTasks} Quests Completed
-            </Text>
-          </View>
+          {/* Quick Stats Card */}
+          {currentElo > 0 && (
+            <View style={styles.quickStatsCard}>
+              <View style={styles.quickStatsRow}>
+                <View style={styles.quickStatItem}>
+                  <Text style={styles.quickStatLabel}>Current Level</Text>
+                  <Text style={styles.quickStatValue}>{level}</Text>
+                </View>
+                <View style={styles.quickStatDivider} />
+                <View style={styles.quickStatItem}>
+                  <Text style={styles.quickStatLabel}>Total ELO</Text>
+                  <Text style={styles.quickStatValue}>{currentElo}</Text>
+                </View>
+                <View style={styles.quickStatDivider} />
+                <View style={styles.quickStatItem}>
+                  <Text style={styles.quickStatLabel}>Rank</Text>
+                  <Text style={styles.quickStatValue}>
+                    #{userData.userStats.rank || "N/A"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Accepted Tasks Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>My Quests</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>My Quests</Text>
+              <Text style={styles.sectionCount}>
+                {acceptedTasks.length} total
+              </Text>
+            </View>
 
             {acceptedTasks.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyEmoji}>📝</Text>
-                <Text style={styles.emptyText}>No accepted quests yet</Text>
+                <Text style={styles.emptyText}>No active quests</Text>
                 <Text style={styles.emptySubtext}>
-                  Go to Home to find quests near you!
+                  Visit the Home tab to find quests near you
                 </Text>
               </View>
             ) : (
               <>
                 {inProgressTasks.length > 0 && (
                   <>
-                    <Text style={styles.subsectionTitle}>In Progress</Text>
+                    <Text style={styles.subsectionTitle}>
+                      In Progress ({inProgressTasks.length})
+                    </Text>
                     {inProgressTasks.map((task) => {
                       const statusInfo = getStatusInfo(task.status);
                       return (
@@ -295,7 +325,9 @@ export default function UserProfileScreen({
 
                 {completedTasks.length > 0 && (
                   <>
-                    <Text style={styles.subsectionTitle}>Completed</Text>
+                    <Text style={styles.subsectionTitle}>
+                      Completed ({completedTasks.length})
+                    </Text>
                     {completedTasks.map((task) => {
                       const statusInfo = getStatusInfo(task.status);
                       return (
@@ -329,7 +361,7 @@ export default function UserProfileScreen({
                               🎯 +{task.elo} ELO
                             </Text>
                             <Text style={styles.taskTime}>
-                              📅 {new Date(task.time).toLocaleDateString()}
+                              ✅ {new Date(task.time).toLocaleDateString()}
                             </Text>
                           </View>
                         </View>
@@ -341,44 +373,23 @@ export default function UserProfileScreen({
             )}
           </View>
 
-          {/* Badges */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Badges & Achievements</Text>
-            <View style={styles.badgesGrid}>
-              {BADGES.map((badge) => (
-                <View
-                  key={badge.id}
-                  style={[
-                    styles.badgeCard,
-                    !badge.earned && styles.badgeCardLocked,
-                  ]}
-                >
-                  <Text style={styles.badgeEmoji}>{badge.icon}</Text>
-                  <Text style={styles.badgeName}>{badge.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
           {/* Impact Summary */}
-          <View style={styles.impactCard}>
-            <View style={styles.impactHeader}>
-              <Text style={styles.impactEmoji}>🏆</Text>
-              <Text style={styles.impactTitle}>Your Impact</Text>
+          {userData.userStats.totalTasks > 0 && (
+            <View style={styles.impactCard}>
+              <View style={styles.impactHeader}>
+                <Text style={styles.impactEmoji}>🏆</Text>
+                <Text style={styles.impactTitle}>Your Impact</Text>
+              </View>
+              <Text style={styles.impactText}>
+                You've completed {userData.userStats.totalTasks}{" "}
+                {userData.userStats.totalTasks === 1 ? "quest" : "quests"} and
+                earned {currentElo} ELO points. You're currently ranked #
+                {userData.userStats.rank || "N/A"} in your area! Keep up the
+                great work!
+              </Text>
             </View>
-            <Text style={styles.impactText}>
-              You've completed {userData.userStats.totalTasks} quests and are
-              ranked #{userData.userStats.rank} in your city. Keep up the
-              amazing work!
-            </Text>
-          </View>
+          )}
         </ScrollView>
-
-        <BottomNav
-          currentScreen="organization"
-          onNavigate={onNavigate}
-          userType={userType}
-        />
       </View>
     </SafeAreaView>
   );
@@ -421,36 +432,41 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
+    flex: 1,
   },
   avatar: {
     width: 64,
     height: 64,
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarEmoji: {
     fontSize: 32,
   },
+  profileInfo: {
+    flex: 1,
+  },
   userName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#FFFFFF",
+    marginBottom: 4,
   },
-  userTitle: {
+  userEmail: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "rgba(255, 255, 255, 0.9)",
   },
   rankBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    borderRadius: 20,
   },
   rankText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "bold",
     color: "#FFFFFF",
   },
   statsRow: {
@@ -460,7 +476,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    padding: 12,
+    padding: 16,
     borderRadius: 16,
     alignItems: "center",
   },
@@ -470,22 +486,14 @@ const styles = StyleSheet.create({
     color: "#4ADE80",
     marginBottom: 4,
   },
-  streakValue: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 4,
-  },
-  streakEmoji: {
-    fontSize: 20,
-  },
   statLabel: {
     fontSize: 12,
     color: "#71717A",
+    textAlign: "center",
   },
   content: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9FAFB",
   },
   contentContainer: {
     paddingHorizontal: 24,
@@ -495,77 +503,127 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E4E4E7",
-    marginBottom: 24,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   levelHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  levelInfo: {
+    flex: 1,
   },
   levelTitle: {
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "bold",
     color: "#18181B",
+    marginBottom: 4,
   },
   levelSubtitle: {
     fontSize: 14,
     color: "#71717A",
   },
-  levelIcon: {
-    width: 48,
-    height: 48,
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
-    borderRadius: 16,
+  levelBadge: {
+    width: 56,
+    height: 56,
+    backgroundColor: "#4ADE80",
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },
-  levelEmoji: {
+  levelBadgeText: {
     fontSize: 24,
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   progressBarBg: {
     height: 12,
     backgroundColor: "#F4F4F5",
     borderRadius: 6,
     overflow: "hidden",
+    marginBottom: 8,
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: "#4ADE80",
     borderRadius: 6,
   },
-  monthCard: {
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(74, 222, 128, 0.2)",
-    marginBottom: 24,
+  progressFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  monthTitle: {
-    fontSize: 14,
+  progressText: {
+    fontSize: 12,
+    color: "#71717A",
+  },
+  progressPercent: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4ADE80",
+  },
+  quickStatsCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  quickStatItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  quickStatLabel: {
+    fontSize: 12,
     color: "#71717A",
     marginBottom: 4,
   },
-  monthValue: {
-    fontSize: 18,
-    fontWeight: "600",
+  quickStatValue: {
+    fontSize: 20,
+    fontWeight: "bold",
     color: "#18181B",
+  },
+  quickStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#E4E4E7",
   },
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "bold",
     color: "#18181B",
-    marginBottom: 12,
+  },
+  sectionCount: {
+    fontSize: 14,
+    color: "#71717A",
   },
   subsectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
-    color: "#71717A",
+    color: "#18181B",
     marginTop: 8,
     marginBottom: 12,
   },
@@ -573,9 +631,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E4E4E7",
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   taskHeader: {
     flexDirection: "row",
@@ -593,9 +654,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
     gap: 4,
   },
   statusIcon: {
@@ -617,7 +678,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   taskElo: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: "#4ADE80",
   },
@@ -627,56 +688,35 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: 48,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
   },
   emptyEmoji: {
     fontSize: 48,
     marginBottom: 12,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     color: "#18181B",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
     color: "#71717A",
-  },
-  badgesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  badgeCard: {
-    width: "30%",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E4E4E7",
-    alignItems: "center",
-  },
-  badgeCardLocked: {
-    opacity: 0.5,
-  },
-  badgeEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  badgeName: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#18181B",
     textAlign: "center",
   },
   impactCard: {
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
+    backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(74, 222, 128, 0.2)",
     marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   impactHeader: {
     flexDirection: "row",
@@ -685,15 +725,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   impactEmoji: {
-    fontSize: 24,
+    fontSize: 28,
   },
   impactTitle: {
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "bold",
     color: "#18181B",
   },
   impactText: {
-    fontSize: 14,
-    color: "#71717A",
-    lineHeight: 20,
+    fontSize: 15,
+    color: "#52525B",
+    lineHeight: 22,
   },
 });

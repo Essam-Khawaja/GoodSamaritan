@@ -8,7 +8,6 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import BottomNav from "../components/BottomNav";
 import QuestDetailsModal from "../components/QuestDetailsModal";
 import type { Task } from "../types";
 import React, { useState, useEffect } from "react";
@@ -33,6 +32,7 @@ interface UserLocation {
 
 export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [acceptedTasks, setAcceptedTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,9 +103,15 @@ export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
       const responseBody = await response.json();
       const data = JSON.parse(responseBody.body);
 
-      const availableTasks =
-        data.tasks?.filter((task: Task) => task.status === 3) || [];
+      // Separate available and accepted tasks
+      const allTasks = data.tasks || [];
+      const availableTasks = allTasks.filter((task: Task) => task.status === 3);
+      const userAcceptedTasks = allTasks.filter(
+        (task: Task) => task.status === 1 || task.status === 2
+      );
+
       setTasks(availableTasks);
+      setAcceptedTasks(userAcceptedTasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
       Alert.alert("Error", "Could not load quests. Please try again.");
@@ -229,6 +235,17 @@ export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
     }
   };
 
+  const getStatusInfo = (status: number) => {
+    switch (status) {
+      case 1:
+        return { text: "In Progress", color: "#FACC15", icon: "🔄" };
+      case 2:
+        return { text: "Complete", color: "#4ADE80", icon: "✅" };
+      default:
+        return { text: "Available", color: "#3B82F6", icon: "📋" };
+    }
+  };
+
   const getInitialRegion = () => {
     if (!userLocation) {
       return {
@@ -267,7 +284,7 @@ export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
               <Text style={styles.headerTitle}>Explore Quests</Text>
               <Text style={styles.headerSubtitle}>
                 {userLocation
-                  ? `${tasks.length} quests nearby`
+                  ? `${tasks.length} available • ${acceptedTasks.length} accepted`
                   : "Enable location to find quests"}
               </Text>
             </View>
@@ -314,9 +331,11 @@ export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
                 </View>
               </Marker>
 
-              {tasks.map((task) => {
+              {/* Show all tasks on map - both available and accepted */}
+              {[...tasks, ...acceptedTasks].map((task) => {
                 const category = getCategory(task.title);
                 const { pinColor } = getCategoryColor(category);
+                const isAccepted = task.status === 1 || task.status === 2;
 
                 return (
                   <Marker
@@ -330,9 +349,14 @@ export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
                     onPress={() => handleTaskSelect(task)}
                   >
                     <View
-                      style={[styles.taskMarker, { backgroundColor: pinColor }]}
+                      style={[
+                        styles.taskMarker,
+                        { backgroundColor: isAccepted ? "#3B82F6" : pinColor },
+                      ]}
                     >
-                      <Text style={styles.taskMarkerText}>📍</Text>
+                      <Text style={styles.taskMarkerText}>
+                        {isAccepted ? "✓" : "📍"}
+                      </Text>
                     </View>
                   </Marker>
                 );
@@ -359,7 +383,88 @@ export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
           style={styles.questList}
           contentContainerStyle={styles.questListContent}
         >
-          <Text style={styles.questListTitle}>Nearby Quests</Text>
+          {/* Accepted Quests Section */}
+          {acceptedTasks.length > 0 && (
+            <>
+              <Text style={styles.questListTitle}>My Accepted Quests</Text>
+              {acceptedTasks.map((task) => {
+                const category = getCategory(task.title);
+                const categoryColors = getCategoryColor(category);
+                const distance = calculateDistance(
+                  task.latitude,
+                  task.longitude
+                );
+                const statusInfo = getStatusInfo(task.status);
+                const icon =
+                  category === "Environment"
+                    ? "🗑️"
+                    : category === "Community"
+                    ? "❤️"
+                    : category === "Safety"
+                    ? "⚠️"
+                    : "📋";
+
+                return (
+                  <TouchableOpacity
+                    key={task.taskID}
+                    onPress={() => handleTaskSelect(task)}
+                    style={[styles.questCard, styles.acceptedQuestCard]}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.questCardContent}>
+                      <View
+                        style={[
+                          styles.questIcon,
+                          { backgroundColor: categoryColors.pinColor },
+                        ]}
+                      >
+                        <Text style={styles.questEmoji}>{icon}</Text>
+                      </View>
+
+                      <View style={styles.questDetails}>
+                        <View style={styles.questHeader}>
+                          <Text style={styles.questTitle}>{task.title}</Text>
+                          <View
+                            style={[
+                              styles.statusBadge,
+                              { backgroundColor: `${statusInfo.color}20` },
+                            ]}
+                          >
+                            <Text style={styles.statusIcon}>
+                              {statusInfo.icon}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.statusText,
+                                { color: statusInfo.color },
+                              ]}
+                            >
+                              {statusInfo.text}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.questDescription}>
+                          {task.description}
+                        </Text>
+
+                        <View style={styles.questMeta}>
+                          <Text style={styles.metaText}>📍 {distance}</Text>
+                          <Text style={styles.metaPoints}>
+                            🎯 +{task.elo} ELO
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+
+          {/* Available Quests Section */}
+          <Text style={styles.questListTitle}>
+            {acceptedTasks.length > 0 ? "Available Quests" : "Nearby Quests"}
+          </Text>
 
           {tasks.length === 0 ? (
             <View style={styles.emptyState}>
@@ -432,12 +537,6 @@ export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
             onAccept={handleAcceptQuest}
           />
         )}
-
-        <BottomNav
-          currentScreen="home"
-          onNavigate={onNavigate}
-          userType={userType}
-        />
       </View>
     </SafeAreaView>
   );
@@ -583,6 +682,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#18181B",
     marginBottom: 16,
+    marginTop: 8,
   },
   emptyState: {
     alignItems: "center",
@@ -614,6 +714,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+  },
+  acceptedQuestCard: {
+    borderColor: "#3B82F6",
+    backgroundColor: "rgba(59, 130, 246, 0.02)",
   },
   questCardContent: {
     flexDirection: "row",
@@ -654,6 +758,21 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 12,
     fontWeight: "500",
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  statusIcon: {
+    fontSize: 12,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   questDescription: {
     fontSize: 14,

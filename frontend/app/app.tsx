@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { StyleSheet, SafeAreaView } from "react-native";
+import { StyleSheet, SafeAreaView, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import OnboardingScreen from "./onboarding";
 import AuthScreen from "./auth";
@@ -15,6 +15,7 @@ import UserProfileScreen from "./screens/UserProfile";
 import OrgProfileScreen from "./screens/OrgProfile";
 import LeaderboardScreen from "./screens/Leaderboard";
 import OrganizationScreen from "./screens/Organisation";
+import BottomNav from "./components/BottomNav";
 import { getUserType } from "./storage";
 
 type Screen =
@@ -67,46 +68,68 @@ export default function App() {
     setCurrentScreen(screen);
   };
 
+  // Determine if we should show the bottom nav
+  const shouldShowBottomNav =
+    storedUserType &&
+    ["home", "profile", "leaderboard", "organization"].includes(currentScreen);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Screens */}
-      {currentScreen === "splash" && <SplashScreen />}
-      {currentScreen === "onboarding" && (
-        <OnboardingScreen onSelectUserType={handleSelectUserType} />
-      )}
-      {currentScreen === "auth" && userType && (
-        <AuthScreen
-          userType={userType}
-          onAuthSuccess={handleAuthSuccess}
-          onBack={handleBackToOnboarding}
-        />
-      )}
-      {currentScreen === "home" && (
-        <HomeScreen onNavigate={handleNavigate} userType={storedUserType} />
-      )}
-      {currentScreen === "profile" && storedUserType === "user" && (
-        <UserProfileScreen
-          onNavigate={handleNavigate}
-          userType={storedUserType}
-        />
-      )}
-      {currentScreen === "profile" && storedUserType === "org" && (
-        <OrgProfileScreen
-          onNavigate={handleNavigate}
-          userType={storedUserType}
-        />
-      )}
-      {currentScreen === "leaderboard" && (
-        <LeaderboardScreen onNavigate={handleNavigate} />
-      )}
-      {currentScreen === "organization" && (
-        <OrganizationScreen
-          onNavigate={handleNavigate}
-          userType={storedUserType}
-        />
-      )}
+      <View style={styles.screenContainer}>
+        {/* Screens */}
+        {currentScreen === "splash" && <SplashScreen />}
+        {currentScreen === "onboarding" && (
+          <OnboardingScreen onSelectUserType={handleSelectUserType} />
+        )}
+        {currentScreen === "auth" && userType && (
+          <AuthScreen
+            userType={userType}
+            onAuthSuccess={handleAuthSuccess}
+            onBack={handleBackToOnboarding}
+          />
+        )}
+        {currentScreen === "home" && (
+          <HomeScreen onNavigate={handleNavigate} userType={storedUserType} />
+        )}
+        {currentScreen === "profile" && storedUserType === "user" && (
+          <UserProfileScreen
+            onNavigate={handleNavigate}
+            userType={storedUserType}
+          />
+        )}
+        {currentScreen === "profile" && storedUserType === "org" && (
+          <OrgProfileScreen
+            onNavigate={handleNavigate}
+            userType={storedUserType}
+          />
+        )}
+        {currentScreen === "leaderboard" && (
+          <LeaderboardScreen onNavigate={handleNavigate} />
+        )}
+        {currentScreen === "organization" && (
+          <OrganizationScreen
+            onNavigate={handleNavigate}
+            userType={storedUserType}
+          />
+        )}
+
+        {/* Bottom Navigation - Centralized */}
+        {shouldShowBottomNav && (
+          <BottomNav
+            currentScreen={
+              currentScreen as
+                | "home"
+                | "profile"
+                | "leaderboard"
+                | "organization"
+            }
+            onNavigate={handleNavigate}
+            userType={storedUserType}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -114,6 +137,9 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#10B981",
+  },
+  screenContainer: {
+    flex: 1,
+    position: "relative",
   },
 });
