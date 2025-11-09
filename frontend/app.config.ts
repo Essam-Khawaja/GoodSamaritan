@@ -7,7 +7,7 @@ const config: ExpoConfig = {
   slug: 'frontend',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/images/icon.png' ,
+  icon: './assets/images/icon.png',
   scheme: 'frontend', 
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
