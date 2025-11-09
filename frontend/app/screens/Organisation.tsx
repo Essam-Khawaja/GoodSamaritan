@@ -364,7 +364,6 @@ export default function OrganizationScreen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#10B981",
   },
   container: {
     flex: 1,

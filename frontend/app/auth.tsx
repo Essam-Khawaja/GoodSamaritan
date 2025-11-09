@@ -335,11 +335,11 @@ export default function AuthScreen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#10B981",
+    backgroundColor: "#FFFFFF",
   },
   container: {
     flex: 1,
-    backgroundColor: "#10B981",
+    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     flexGrow: 1,
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: "#FFFFFF",
+    color: "#10B981", // green highlight
     fontWeight: "600",
   },
   header: {
@@ -366,12 +366,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#10B981", // green highlight
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "#065F46", // darker green tone
   },
   form: {
     gap: 20,
@@ -382,18 +382,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#0F172A", // dark text for readability
   },
   input: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderWidth: 2,
+    borderColor: "#10B981", // green outline
   },
   submitButton: {
-    backgroundColor: "#059669",
+    backgroundColor: "#10B981", // green accent
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
@@ -416,11 +416,11 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "#475569",
   },
   toggleLink: {
     fontSize: 14,
-    color: "#FFFFFF",
-    fontWeight: "600",
+    color: "#10B981",
+    fontWeight: "700",
   },
 });

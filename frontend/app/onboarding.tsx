@@ -37,7 +37,7 @@ export default function OnboardingScreen({
               <View style={styles.iconContainer}>
                 <Text style={styles.icon}>👤</Text>
               </View>
-              <Text style={styles.cardTitle}>I'm a Citizen</Text>
+              <Text style={styles.cardTitle}>I'm a Samaritan!</Text>
               <Text style={styles.cardDescription}>
                 Join quests, earn points, and make your city better
               </Text>
@@ -51,7 +51,7 @@ export default function OnboardingScreen({
               <View style={styles.iconContainer}>
                 <Text style={styles.icon}>🏢</Text>
               </View>
-              <Text style={styles.cardTitle}>I'm an Organization</Text>
+              <Text style={styles.cardTitle}>I'm an Organization!</Text>
               <Text style={styles.cardDescription}>
                 Create quests and engage your community
               </Text>
@@ -66,7 +66,7 @@ export default function OnboardingScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#10B981",
+    backgroundColor: "#FFFFFF", // White background
   },
   scrollContent: {
     flexGrow: 1,
@@ -85,13 +85,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#10B981", // Green highlight
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "#065F46", // darker green tone
     marginBottom: 48,
     textAlign: "center",
   },
@@ -100,20 +100,22 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9FAFB", // subtle off-white card background
     borderRadius: 20,
     padding: 24,
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#10B981", // green highlight border
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
   },
   iconContainer: {
     width: 80,
     height: 80,
-    backgroundColor: "transparent",
+    backgroundColor: "#E6F9F2", // soft green tint
     borderRadius: 40,
     justifyContent: "center",
     alignItems: "center",
@@ -125,12 +127,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: "#0F172A", // dark neutral
     marginBottom: 8,
   },
   cardDescription: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#475569",
     textAlign: "center",
   },
 });
