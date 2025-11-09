@@ -22,9 +22,7 @@ interface AuthScreenProps {
   onBack: () => void;
 }
 
-const API_BASE_URL =
-  "https://t2qjqhubn3.execute-api.ca-west-1.amazonaws.com/dev";
-
+const API_BASE_URL = process.env.AWS_BASE_URL;
 export default function AuthScreen({
   userType,
   onAuthSuccess,
