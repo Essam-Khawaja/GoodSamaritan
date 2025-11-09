@@ -8,12 +8,9 @@ import AuthScreen from "./auth";
 import SplashScreen from "./splashScreen";
 import React from "react";
 import HomeScreen from "./screens/HomeScreen";
-// import ProfileScreen from "./screens/ProfileScreen"
-// import LeaderboardScreen from "./screens/LeaderboardScreen"
-// import OrganizationScreen from "./screens/OrganizationScreen"
-// import QuestDetailsModal from "./components/QuestDetailsModal"
 import type { Task } from "./types";
 import LandingPage from "./LandingPage";
+import UserMainDashboard from "./userMainDashboard"; // 
 
 type Screen =
   | "splash"
@@ -22,7 +19,8 @@ type Screen =
   | "home"
   | "profile"
   | "leaderboard"
-  | "organization";
+  | "organization"
+  | "userMainDashboard"; // 
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("splash");
@@ -46,7 +44,7 @@ export default function App() {
 
   const handleAuthSuccess = (userData: any) => {
     setUser(userData);
-    setCurrentScreen("home");
+    setCurrentScreen("userMainDashboard");
   };
 
   const handleBackToOnboarding = () => {
@@ -58,10 +56,6 @@ export default function App() {
     setSelectedQuest(quest);
   };
 
-  //   const handleCloseModal = () => {
-  //     setSelectedQuest(null)
-  //   }
-
   const handleNavigate = (
     screen: "home" | "profile" | "leaderboard" | "organization"
   ) => {
@@ -71,10 +65,13 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
+
       {currentScreen === "splash" && <SplashScreen />}
+
       {currentScreen === "onboarding" && (
         <OnboardingScreen onSelectUserType={handleSelectUserType} />
       )}
+
       {currentScreen === "auth" && userType && (
         <AuthScreen
           userType={userType}
@@ -82,12 +79,17 @@ export default function App() {
           onBack={handleBackToOnboarding}
         />
       )}
+
       {currentScreen === "home" && <LandingPage />}
+
+      {currentScreen === "userMainDashboard" && (
+        <UserMainDashboard />
+      )}
+
+      {/* other screens still commented out */}
       {/* {currentScreen === "profile" && <ProfileScreen onNavigate={handleNavigate} />}
       {currentScreen === "leaderboard" && <LeaderboardScreen onNavigate={handleNavigate} />}
       {currentScreen === "organization" && <OrganizationScreen onNavigate={handleNavigate} />} */}
-
-      {/* {selectedQuest && <QuestDetailsModal quest={selectedQuest} onClose={handleCloseModal} />} */}
     </SafeAreaView>
   );
 }
