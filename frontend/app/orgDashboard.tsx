@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -12,11 +13,14 @@ import {
   Alert,
 } from 'react-native';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-type TaskStatus = 'Unclaimed' | 'Claimed' | 'Completed';
+type TaskStatus = 'Unclaimed' | 'Claimed' | 'Completed' | 'Incomplete';
 type Evaluation = 'None' | 'Complete' | 'Incomplete';
 
 type Task = {
@@ -24,16 +28,19 @@ type Task = {
   title: string;
   description: string;
   status: TaskStatus;
-  elo: number;
+  elo: number; // positive or negative impact based on completion
   claimedBy?: string;
   evaluation?: Evaluation;
 };
 
 export default function OrgDashboard() {
-  const orgName = 'Org Name Here';
+  const orgName = 'Org Name Here'; // TODO: replace with org name from backend/auth
+  const router = useRouter();
+
   const [selectedTab, setSelectedTab] = useState<TaskStatus>('Unclaimed');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+  // TODO: replace this with data from backend (org tasks)
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: '1',
@@ -55,7 +62,7 @@ export default function OrgDashboard() {
       description: 'Deliver donated toys to the children’s center.',
       status: 'Claimed',
       claimedBy: 'Alex Johnson',
-      elo: 80,
+      elo: 80, // base value, will be made +/- on evaluation
       evaluation: 'None',
     },
     {
@@ -71,30 +78,41 @@ export default function OrgDashboard() {
       id: '5',
       title: 'Book Sorting',
       description: 'Sort and categorize donated books for the library.',
-      status: 'Completed',
+      status: 'Incomplete',
       claimedBy: 'Jordan Smith',
-      elo: 100,
+      elo: -100, // already penalized
       evaluation: 'Incomplete',
     },
   ]);
 
-  const filteredTasks = tasks.filter((task) => task.status === selectedTab);
+  // Completed tab shows both Completed and Incomplete
+  const filteredTasks = tasks.filter((task) =>
+    selectedTab === 'Completed'
+      ? task.status === 'Completed' || task.status === 'Incomplete'
+      : task.status === selectedTab
+  );
 
   const handleEvaluation = (id: string, result: Evaluation) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              evaluation: result,
-              status:
-                selectedTab === 'Claimed' && result !== 'None'
-                  ? 'Completed'
-                  : t.status,
-            }
-          : t
-      )
+      prev.map((t) => {
+        if (t.id !== id) return t;
+
+        if (result === 'None') {
+          return { ...t, evaluation: result };
+        }
+
+        // Ensure elo is positive for Complete, negative for Incomplete
+        const eloValue =
+          result === 'Complete' ? Math.abs(t.elo) : -Math.abs(t.elo);
+
+        return {
+          ...t,
+          evaluation: result,
+          status: result === 'Complete' ? 'Completed' : 'Incomplete',
+          elo: eloValue,
+        };
+      })
     );
   };
 
@@ -142,7 +160,14 @@ export default function OrgDashboard() {
           <View style={styles.taskHeader}>
             <Text style={styles.taskTitle}>{item.title}</Text>
             <View style={[styles.statusBadge, getStatusStyle(item.status)]}>
-              <Text style={styles.statusText}>{item.status}</Text>
+              <Text
+                style={[
+                  styles.statusText,
+                  item.status === 'Unclaimed' && { color: '#fbfaf2' },
+                ]}
+              >
+                {item.status}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -159,10 +184,17 @@ export default function OrgDashboard() {
               </>
             )}
 
-            <Text style={styles.detailLabel}>Elo Reward</Text>
-            <Text style={styles.detailElo}>+{item.elo} pts</Text>
+            <Text style={styles.detailLabel}>Elo Impact</Text>
+            <Text
+              style={[
+                styles.detailElo,
+                item.elo < 0 && { color: '#E57373' },
+              ]}
+            >
+              {item.elo >= 0 ? `+${item.elo} pts` : `${item.elo} pts`}
+            </Text>
 
-            {/* For Claimed tab — evaluation options */}
+            {/* Evaluation options only in Claimed tab */}
             {isClaimedTab && (
               <View style={styles.evaluationContainer}>
                 {item.evaluation === 'None' ? (
@@ -192,7 +224,7 @@ export default function OrgDashboard() {
                     <Text style={styles.evaluationResultText}>
                       {item.evaluation === 'Complete'
                         ? 'Marked Complete'
-                        : 'Marked Incomplete'}
+                        : 'Marked Incomplete (Elo Penalty Applied)'}
                     </Text>
                   </View>
                 )}
@@ -218,6 +250,8 @@ export default function OrgDashboard() {
     switch (status) {
       case 'Completed':
         return { backgroundColor: '#1bb998' };
+      case 'Incomplete':
+        return { backgroundColor: '#E57373' };
       case 'Claimed':
         return { backgroundColor: '#F6C947' };
       case 'Unclaimed':
@@ -239,7 +273,10 @@ export default function OrgDashboard() {
             style={[styles.tab, selectedTab === tab && styles.tabActive]}
           >
             <Text
-              style={[styles.tabText, selectedTab === tab && styles.tabTextActive]}
+              style={[
+                styles.tabText,
+                selectedTab === tab && styles.tabTextActive,
+              ]}
             >
               {tab}
             </Text>
@@ -261,7 +298,10 @@ export default function OrgDashboard() {
 
       {/* Add Task button for Unclaimed */}
       {selectedTab === 'Unclaimed' && (
-        <TouchableOpacity style={styles.bottomAddButton}>
+        <TouchableOpacity
+          style={styles.bottomAddButton}
+          onPress={() => router.push('/addOrgTask')}
+        >
           <Text style={styles.bottomAddButtonText}>+ Add New Task</Text>
         </TouchableOpacity>
       )}
