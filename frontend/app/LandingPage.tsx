@@ -45,7 +45,7 @@ export default function LandingPage() {
       <View style={styles.tempContainer}>
         <TouchableOpacity
           style={styles.tempButton}
-          onPress={() => router.push('/userMainDashboard')}
+          onPress={() => router.push('/orgDashboard')}
         >
           <Text style={styles.tempButtonText}>Login as Test User →</Text>
         </TouchableOpacity>
