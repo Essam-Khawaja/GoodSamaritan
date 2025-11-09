@@ -62,7 +62,7 @@ export default function UserProfileScreen({
 
   const fetchAcceptedTasks = async (userID: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user-getTasks`, {
+      const response = await fetch(`${API_BASE_URL}/user-getAcceptedTasks`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,13 +77,35 @@ export default function UserProfileScreen({
       }
 
       const responseBody = await response.json();
-      const data = JSON.parse(responseBody.body);
 
-      // Filter for accepted tasks (status: 1 - In Progress, 2 - Complete)
-      const myTasks =
-        data.tasks?.filter(
-          (task: Task) => task.status === 1 || task.status === 2
-        ) || [];
+      let parsed: any;
+      if (responseBody && typeof responseBody.body === "string") {
+        try {
+          parsed = JSON.parse(responseBody.body);
+        } catch (e) {
+          console.error(
+            "Failed to parse responseBody.body:",
+            e,
+            responseBody.body
+          );
+          parsed = {};
+        }
+      } else {
+        parsed = responseBody;
+      }
+
+      const tasksArray: any[] = Array.isArray(parsed.tasks) ? parsed.tasks : [];
+
+      const normalized = tasksArray.map((t) => ({
+        ...t,
+        status: Number(t.status),
+        latitude: Number(t.latitude),
+        longitude: Number(t.longitude),
+        elo: Number(t.elo),
+      }));
+
+      const myTasks = normalized;
+
       setAcceptedTasks(myTasks);
     } catch (error) {
       console.error("Error fetching accepted tasks:", error);
