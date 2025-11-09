@@ -22,6 +22,9 @@ interface AuthScreenProps {
   onBack: () => void;
 }
 
+const API_BASE_URL =
+  "https://t2qjqhubn3.execute-api.ca-west-1.amazonaws.com/dev";
+
 export default function AuthScreen({
   userType,
   onAuthSuccess,
@@ -58,19 +61,61 @@ export default function AuthScreen({
 
     try {
       // API endpoint based on action and user type
-      const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
+      let endpoint = "";
+      let reqType = "";
+
+      if (isLogin) {
+        //   endpoint =
+        // userType === "civilian"
+        //   ? `${API_BASE_URL}/user-login`
+        //   : `${API_BASE_URL}/org-login`;
+        reqType = userType === "civilian" ? "user-login" : "org-login";
+      } else {
+        //   endpoint =
+        // userType === "civilian"
+        //   ? `${API_BASE_URL}/user-signup`
+        //   : `${API_BASE_URL}/org-signup`;
+        reqType = userType === "civilian" ? "user-signup" : "org-signup";
+      }
+
+      endpoint = `${API_BASE_URL}/user-login`;
+
+      let body = JSON.stringify({});
+      switch (reqType) {
+        case "user-login":
+          body = JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          });
+          break;
+        case "org-login":
+          body = JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          });
+          break;
+        case "user-signup":
+          body = JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          });
+          break;
+        case "org-signup":
+          body = JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          });
+          break;
+        default:
+          throw new Error("Invalid request type");
+      }
 
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          userType: userType,
-        }),
+        body: body,
       });
 
       const data = await response.json();
