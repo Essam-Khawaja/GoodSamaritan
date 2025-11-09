@@ -15,8 +15,8 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from "react-native";
-
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { User, Org } from "./types";
 
 interface AuthScreenProps {
   userType: "civilian" | "organization";
@@ -25,6 +25,7 @@ interface AuthScreenProps {
 }
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_AWS_BASE_URL;
+
 export default function AuthScreen({
   userType,
   onAuthSuccess,
@@ -38,6 +39,57 @@ export default function AuthScreen({
     name: "",
     confirmPassword: "",
   });
+
+  // NEW: Store complete user data
+  const storeUserData = async (userData: User | Org, type: "user" | "org") => {
+    try {
+      const userDataWithType = {
+        ...userData,
+        type: type,
+      };
+
+      await AsyncStorage.setItem("user_data", JSON.stringify(userDataWithType));
+      console.log("[v0] User data stored successfully");
+    } catch (error) {
+      console.error("[v0] Error storing user data:", error);
+    }
+  };
+
+  // NEW: Fetch complete user data after successful login
+  const fetchAndStoreUserData = async (email: string, type: "user" | "org") => {
+    try {
+      const endpoint =
+        type === "user"
+          ? `${API_BASE_URL}/user-get`
+          : `${API_BASE_URL}/org-get`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: email }),
+      });
+
+      const data = await response.json(); // Parse the main response
+      console.log("[v0] Fetched user data:", data);
+
+      if (response.ok && data.statusCode === 200) {
+        // Parse the body string to get the actual user/org data
+        const bodyData = JSON.parse(data.body);
+        const userData = bodyData.user || bodyData.org; // Access user or org data based on type
+
+        // Store the complete user data
+        await storeUserData(userData, type);
+
+        console.log("[v0] User data fetched and stored");
+      } else {
+        console.error("[v0] Failed to fetch user data:", data.body);
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching user data:", error);
+    }
+  };
 
   const handleAuth = async () => {
     if (!formData.email || !formData.password) {
@@ -117,17 +169,23 @@ export default function AuthScreen({
       const data = await response.json();
 
       // Check for 401 in the response body (Lambda returns statusCode in body)
-      if (data.statusCode === 401 || data.body.success === false) {
+      if (data.statusCode === 401 || data.body?.success === false) {
         Alert.alert(
           "Access Denied",
           data.message || "Invalid email or password. Please try again."
         );
+        setLoading(false);
         return;
       }
 
       if (response.ok && data.success !== false) {
         // Success - store user data and navigate to main app
         console.log("[v0] Auth successful:", data);
+
+        // NEW: Fetch and store complete user data
+        const type = userType === "civilian" ? "user" : "org";
+        await fetchAndStoreUserData(formData.email, type);
+
         onAuthSuccess(data.user);
       } else {
         Alert.alert("Error", data.message || "Authentication failed");

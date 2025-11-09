@@ -18,12 +18,9 @@ const config: ExpoConfig = {
     config: {
       googleMapsApiKey: process.env.GOOGLE_API_KEY,
     },
-    infoPlist: {
-      NSLocationWhenInUseUsageDescription:
-        'We use your location to show nearby items and services.',
-      NSLocationAlwaysAndWhenInUseUsageDescription:
-        'We use your location to improve results when the app is in use.',
-    },
+    infoPlist:{
+       "NSLocationWhenInUseUsageDescription": "We need your location to find nearby quests"
+     }
   },
 
   android: {

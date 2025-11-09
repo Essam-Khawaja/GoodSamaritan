@@ -8,22 +8,32 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "../components/BottomNav";
 import type { Task } from "../types";
 import React from "react";
+import * as Location from "expo-location";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import { getUserId, getUserData } from "../storage";
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_AWS_BASE_URL;
 
 interface OrganizationScreenProps {
   onNavigate: (
     screen: "home" | "profile" | "leaderboard" | "organization"
   ) => void;
-  onCreateTask?: (task: Partial<Task>) => Promise<void>;
+}
+
+interface MapLocation {
+  latitude: number;
+  longitude: number;
 }
 
 export default function OrganizationScreen({
   onNavigate,
-  onCreateTask,
 }: OrganizationScreenProps) {
   const [questTitle, setQuestTitle] = useState("");
   const [questDescription, setQuestDescription] = useState("");
@@ -31,38 +41,135 @@ export default function OrganizationScreen({
   const [selectedType, setSelectedType] = useState<string>("Cleanup");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Location states
+  const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(
+    null
+  );
+  const [showMap, setShowMap] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(true);
+
+  // Get user location on mount
+  useEffect(() => {
+    getUserLocation();
+  }, []);
+
+  const getUserLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Location permission is required to set quest location"
+        );
+        setLoadingLocation(false);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const coords = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+
+      setUserLocation(coords);
+      setSelectedLocation(coords); // Set initial selected location to user location
+    } catch (error) {
+      console.error("Error getting location:", error);
+      Alert.alert("Error", "Could not get your location");
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
+  const handleMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setSelectedLocation({ latitude, longitude });
+  };
+
   const handleCreateQuest = async () => {
     if (!questTitle || !questDescription || !questElo) {
-      alert("Please fill in all fields");
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (!selectedLocation) {
+      Alert.alert("Error", "Please set a location for the quest");
       return;
     }
 
     setIsSubmitting(true);
-    try {
-      const newTask: Partial<Task> = {
-        title: questTitle,
-        description: questDescription,
-        elo: Number.parseInt(questElo),
-        latitude: 51.0447, // Default location - should be set by map picker
-        longitude: -114.0719,
-        time: new Date().toISOString(),
-        status: 3, // Available
-      };
 
-      if (onCreateTask) {
-        await onCreateTask(newTask);
+    try {
+      // Verify user is an organization
+      const userData = await getUserData();
+      if (userData?.type !== "org") {
+        Alert.alert("Error", "Only organizations can create tasks");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const orgId = await getUserId();
+      console.log(userData);
+
+      if (!orgId) {
+        Alert.alert("Error", "Organization not logged in");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/createTask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: questTitle,
+          description: questDescription,
+          latitude: selectedLocation.latitude,
+          longitude: selectedLocation.longitude,
+          elo: Number.parseInt(questElo),
+          orgID: orgId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success !== false) {
+        Alert.alert("Success", "Quest created successfully!");
+
+        // Reset form
         setQuestTitle("");
         setQuestDescription("");
         setQuestElo("");
         setSelectedType("Cleanup");
-        alert("Quest created successfully!");
+        setSelectedLocation(userLocation);
+        setShowMap(false);
+      } else {
+        Alert.alert("Error", data.message || "Failed to create quest");
       }
     } catch (error) {
-      alert("Failed to create quest. Please try again.");
+      console.error("Error creating quest:", error);
+      Alert.alert("Error", "Failed to create quest. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (loadingLocation) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, styles.centerContent]}>
+          <ActivityIndicator size="large" color="#10B981" />
+          <Text style={styles.loadingText}>Getting your location...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -166,11 +273,62 @@ export default function OrganizationScreen({
               <TouchableOpacity
                 style={styles.locationButton}
                 activeOpacity={0.7}
+                onPress={() => setShowMap(!showMap)}
               >
                 <Text style={styles.locationEmoji}>📍</Text>
-                <Text style={styles.locationText}>Set location on map</Text>
+                <Text style={styles.locationText}>
+                  {selectedLocation
+                    ? `${selectedLocation.latitude.toFixed(
+                        4
+                      )}, ${selectedLocation.longitude.toFixed(4)}`
+                    : "Set location on map"}
+                </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Map */}
+            {showMap && userLocation && (
+              <View style={styles.mapContainer}>
+                <Text style={styles.mapInstructions}>
+                  Tap anywhere on the map to set quest location
+                </Text>
+                <MapView
+                  style={styles.map}
+                  provider={PROVIDER_GOOGLE}
+                  initialRegion={{
+                    latitude: userLocation.latitude,
+                    longitude: userLocation.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}
+                  onPress={handleMapPress}
+                >
+                  {/* Selected location marker */}
+                  {selectedLocation && (
+                    <Marker
+                      coordinate={selectedLocation}
+                      title="Quest Location"
+                      pinColor="#4ADE80"
+                    />
+                  )}
+
+                  {/* User location marker */}
+                  {userLocation && (
+                    <Marker
+                      coordinate={userLocation}
+                      title="Your Location"
+                      pinColor="#10B981"
+                    />
+                  )}
+                </MapView>
+                <TouchableOpacity
+                  style={styles.mapCloseButton}
+                  onPress={() => setShowMap(false)}
+                >
+                  <Text style={styles.mapCloseText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Submit Button */}
             <TouchableOpacity
@@ -182,28 +340,12 @@ export default function OrganizationScreen({
               onPress={handleCreateQuest}
               disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText}>
-                {isSubmitting ? "Creating..." : "Create Quest"}
-              </Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitButtonText}>Create Quest</Text>
+              )}
             </TouchableOpacity>
-          </View>
-
-          {/* Your Created Quests */}
-          <View style={styles.createdSection}>
-            <Text style={styles.createdTitle}>Your Created Quests</Text>
-            <View style={styles.createdCard}>
-              <View style={styles.createdContent}>
-                <View style={styles.createdIcon}>
-                  <Text style={styles.createdEmoji}>🗑️</Text>
-                </View>
-                <View style={styles.createdDetails}>
-                  <Text style={styles.createdName}>Community Garden Setup</Text>
-                  <Text style={styles.createdStatus}>
-                    Active • 8 participants
-                  </Text>
-                </View>
-              </View>
-            </View>
           </View>
         </ScrollView>
 
@@ -221,6 +363,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingBottom: 80,
+  },
+  centerContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#71717A",
   },
   header: {
     paddingHorizontal: 24,
@@ -340,7 +491,36 @@ const styles = StyleSheet.create({
   },
   locationText: {
     color: "#71717A",
-    fontSize: 16,
+    fontSize: 14,
+    flex: 1,
+  },
+  mapContainer: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  mapInstructions: {
+    fontSize: 12,
+    color: "#71717A",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  map: {
+    height: 300,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  mapCloseButton: {
+    backgroundColor: "#4ADE80",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  mapCloseText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
   },
   submitButton: {
     backgroundColor: "#4ADE80",
@@ -356,48 +536,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 16,
-  },
-  createdSection: {
-    marginTop: 32,
-  },
-  createdTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#18181B",
-    marginBottom: 12,
-  },
-  createdCard: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E4E4E7",
-  },
-  createdContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  createdIcon: {
-    width: 40,
-    height: 40,
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  createdEmoji: {
-    fontSize: 20,
-  },
-  createdDetails: {
-    flex: 1,
-  },
-  createdName: {
-    fontWeight: "500",
-    color: "#18181B",
-  },
-  createdStatus: {
-    fontSize: 12,
-    color: "#71717A",
   },
 });
