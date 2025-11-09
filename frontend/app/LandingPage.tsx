@@ -28,7 +28,7 @@ export default function LandingPage() {
       <View style={styles.row}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/newOrganization')}
+          onPress={() => router.push('/userMainDashboard')}
         >
           <Text style={styles.buttonText}>New Organization</Text>
         </TouchableOpacity>

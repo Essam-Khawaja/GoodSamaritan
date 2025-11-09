@@ -222,16 +222,13 @@ export default function OrgDashboard() {
         return { backgroundColor: '#F6C947' };
       case 'Unclaimed':
       default:
-        return { backgroundColor: '#d1d5db' };
+        return { backgroundColor: '#9ca3af' };
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.welcomeTitle}>Welcome {orgName}</Text>
-      <Text style={styles.subtitle}>
-        View, add, and manage your organization’s volunteer tasks.
-      </Text>
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -344,10 +341,10 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontWeight: '600',
-    color: '#000',
+    color: '#fbfaf2',
   },
   expandedSection: {
-    backgroundColor: '#f6f6f6',
+    backgroundColor: '#fbfaf2',
     marginTop: 8,
     padding: 14,
     borderRadius: 12,
@@ -380,7 +377,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   evalBtnText: {
-    color: '#fff',
+    color: '#fbfaf2',
     fontWeight: '700',
   },
   evaluationResult: {
@@ -390,7 +387,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   evaluationResultText: {
-    color: '#fff',
+    color: '#fbfaf2',
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -403,7 +400,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteBtnText: {
-    color: '#fff',
+    color: '#fbfaf2',
     fontWeight: '700',
   },
   bottomAddButton: {
@@ -422,7 +419,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   bottomAddButtonText: {
-    color: '#fff',
+    color: '#fbfaf2',
     fontSize: 16,
     fontWeight: '700',
   },

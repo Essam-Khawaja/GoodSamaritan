@@ -1,23 +1,22 @@
-// app/mapDash.tsx
 import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Easing,
-    FlatList,
-    LayoutAnimation,
-    PanResponder,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    UIManager,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Easing,
+  FlatList,
+  LayoutAnimation,
+  PanResponder,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  UIManager,
+  View,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { useRouter } from 'expo-router';
@@ -32,19 +31,19 @@ type Task = {
   id: string;
   title: string;
   organization: string;
-  location: string;   // human label
+  location: string;
   description: string;
   elo: number;
   status: TaskStatus;
-  coords: LatLng;     // pin location
+  coords: LatLng;
 };
 type Coords = Location.LocationObjectCoords;
 
 const STATUS_PIN_COLORS: Record<TaskStatus, string> = {
-  Done: '#1bb998',       // green
-  Pending: '#F6C947',    // amber
-  Incomplete: '#E57373', // red
-  Available: '#9ca3af',  // gray
+  Done: '#1bb998',
+  Pending: '#F6C947',
+  Incomplete: '#E57373',
+  Available: '#9ca3af',
 };
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
@@ -53,36 +52,30 @@ export default function UserDashboard() {
   const router = useRouter();
   const screenH = Dimensions.get('window').height;
 
-  // Map height animates between 70% (collapsed) and 30% (expanded)
-  const MAP_COLLAPSED = Math.round(screenH * 0.70); // map big (default)
-  const MAP_EXPANDED  = Math.round(screenH * 0.30); // sheet open
+  const MAP_COLLAPSED = Math.round(screenH * 0.7);
+  const MAP_EXPANDED = Math.round(screenH * 0.3);
 
-  // user data
   const [username, setUsername] = useState<string>('User');
   const [samaritanScore, setSamaritanScore] = useState<number>(1234);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // map & location
   const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(true);
   const [userLatLon, setUserLatLon] = useState<{ lat: number; lon: number } | null>(null);
   const mapRef = useRef<MapView | null>(null);
   const subRef = useRef<Location.LocationSubscription | null>(null);
 
-  // Animated map height state
   const mapHeight = useRef(new Animated.Value(MAP_COLLAPSED)).current;
   const startHeightRef = useRef(MAP_COLLAPSED);
   const [sheetExpanded, setSheetExpanded] = useState(false);
 
-  // rAF throttle for drag
   const dragRAF = useRef<number | null>(null);
   const dyRef = useRef(0);
 
-  // Scroll to task
   const scrollRef = useRef<ScrollView>(null);
-  const layoutYs = useRef<Record<string, number>>({}); // taskId -> y within ScrollView
+  const layoutYs = useRef<Record<string, number>>({});
 
   const setMapHeight = (to: number, animate = true) => {
     const clamped = clamp(to, MAP_EXPANDED, MAP_COLLAPSED);
@@ -92,7 +85,7 @@ export default function UserDashboard() {
         toValue: clamped,
         duration: 280,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: false, // animating height
+        useNativeDriver: false,
       }).start();
     } else {
       mapHeight.setValue(clamped);
@@ -118,7 +111,7 @@ export default function UserDashboard() {
         if (dragRAF.current == null) {
           dragRAF.current = requestAnimationFrame(() => {
             const next = clamp(
-              startHeightRef.current - dyRef.current, // dragging up (negative dy) reduces height
+              startHeightRef.current - dyRef.current,
               MAP_EXPANDED,
               MAP_COLLAPSED
             );
@@ -164,7 +157,6 @@ export default function UserDashboard() {
     })
   ).current;
 
-  // demo data with coords (UCalgary-ish positions)
   useEffect(() => {
     (async () => {
       await new Promise((r) => setTimeout(r, 200));
@@ -217,7 +209,6 @@ export default function UserDashboard() {
     })();
   }, []);
 
-  // location
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -276,9 +267,7 @@ export default function UserDashboard() {
       const remaining = prevAvail.filter((t) => t.id !== id);
       const updated: Task = { ...task, status: 'Pending' };
 
-      // move to My Tasks
       setMyTasks((prevMy) => [updated, ...prevMy]);
-      // keep the details open for the user
       setExpandedIds(new Set([id]));
 
       return remaining;
@@ -288,7 +277,7 @@ export default function UserDashboard() {
   const focusTask = (id: string) => {
     const t = allTasks.find((x) => x.id === id);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedIds(new Set([id])); // open this one
+    setExpandedIds(new Set([id]));
 
     if (t?.coords) {
       mapRef.current?.animateCamera(
@@ -319,7 +308,7 @@ export default function UserDashboard() {
           <Pressable onPress={() => toggleTask(item.id)} style={styles.taskCard}>
             <View style={styles.taskTextContainer}>
               <Text style={styles.taskTitle}>{item.title}</Text>
-              <Text style={styles.taskSubtitle}>{item.location}</Text>
+              <Text style={styles.taskSubtitle}>{item.organization}</Text>
             </View>
             <View
               style={[
@@ -327,9 +316,7 @@ export default function UserDashboard() {
                 { backgroundColor: STATUS_PIN_COLORS[item.status] },
               ]}
             >
-              <Text style={[styles.statusText, item.status === 'Available' && { color: '#000' }]}>
-                {item.status}
-              </Text>
+              <Text style={styles.statusText}>{item.status}</Text>
             </View>
           </Pressable>
 
@@ -338,16 +325,12 @@ export default function UserDashboard() {
               <Text style={styles.detailLabel}>Organization</Text>
               <Text style={styles.detailText}>{item.organization}</Text>
 
-              <Text style={styles.detailLabel}>Location</Text>
-              <Text style={styles.detailText}>{item.location}</Text>
-
               <Text style={styles.detailLabel}>Description</Text>
               <Text style={styles.detailText}>{item.description}</Text>
 
               <Text style={styles.detailLabel}>Elo Reward</Text>
               <Text style={styles.detailElo}>+{item.elo} pts</Text>
 
-              {/* Claim button for Available tasks */}
               {item.status === 'Available' && (
                 <Pressable onPress={() => claimTask(item.id)} style={styles.claimBtn}>
                   <Text style={styles.claimBtnText}>Claim Task</Text>
@@ -372,7 +355,6 @@ export default function UserDashboard() {
         </View>
       ) : (
         <>
-          {/* Animated MAP height */}
           <Animated.View style={{ height: mapHeight, overflow: 'hidden' }}>
             <MapView
               ref={mapRef}
@@ -386,8 +368,8 @@ export default function UserDashboard() {
                 <Marker
                   key={t.id}
                   coordinate={t.coords}
-                  title={t.description}
-                  description={`${t.organization} • ${t.location}`}
+                  title={t.title}
+                  description={t.organization}
                   pinColor={STATUS_PIN_COLORS[t.status]}
                   onPress={() => focusTask(t.id)}
                 />
@@ -395,9 +377,7 @@ export default function UserDashboard() {
             </MapView>
           </Animated.View>
 
-          {/* SHEET */}
           <View style={styles.sheet}>
-            {/* Entire header is a button to open the sheet; "score" button is placeholder */}
             <View style={styles.sheetHeader} {...panResponder.panHandlers}>
               <Pressable
                 onPress={() => setMapHeight(MAP_EXPANDED, true)}
@@ -410,7 +390,7 @@ export default function UserDashboard() {
                       <Text style={styles.peekHint}>Tap to view your tasks & stats</Text>
                     </View>
                     <Pressable
-                      onPress={(e) => {
+                      onPress={() => {
                         router.push('/userImpactDashboard');
                       }}
                       style={styles.peekScore}
@@ -427,7 +407,7 @@ export default function UserDashboard() {
                       <Text style={styles.username}>{username}</Text>
                     </View>
                     <Pressable
-                      onPress={(e) => {
+                      onPress={() => {
                         router.push('/userImpactDashboard');
                       }}
                       style={styles.scoreBox}
@@ -441,7 +421,6 @@ export default function UserDashboard() {
               </Pressable>
             </View>
 
-            {/* Body shown when sheet expanded */}
             {sheetExpanded ? (
               <ScrollView
                 ref={scrollRef}
@@ -471,8 +450,6 @@ export default function UserDashboard() {
                     scrollEnabled={false}
                   />
                 )}
-
-                {/* Removed "Your location" footer per request */}
               </ScrollView>
             ) : null}
           </View>
@@ -483,9 +460,7 @@ export default function UserDashboard() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
-
-  // ===== Sheet =====
+  root: { flex: 1, backgroundColor: '#fbfaf2' },
   sheet: {
     flex: 1,
     backgroundColor: '#fbfaf2',
@@ -504,8 +479,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerPress: { borderRadius: 14 },
-
-  // Collapsed peek bar
   peekBar: {
     backgroundColor: '#ffffff',
     borderRadius: 14,
@@ -531,8 +504,6 @@ const styles = StyleSheet.create({
   },
   peekScoreLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
   peekScoreValue: { color: '#fff', fontSize: 18, fontWeight: '800', marginTop: 2 },
-
-  // Expanded header
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
   greeting: { fontSize: 22, fontWeight: '600', color: '#000' },
   username: { fontSize: 26, fontWeight: '700', color: '#000' },
@@ -550,8 +521,6 @@ const styles = StyleSheet.create({
   },
   scoreLabel: { fontSize: 14, color: '#fbfaf2' },
   scoreValue: { fontSize: 22, fontWeight: 'bold', color: '#fbfaf2' },
-
-  // Claim button (same color/style vibe as score button)
   claimBtn: {
     backgroundColor: '#1bb998',
     borderRadius: 12,
@@ -567,7 +536,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   claimBtnText: { color: '#fbfaf2', fontSize: 16, fontWeight: '700' },
-
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -576,7 +544,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 16,
   },
-
   taskCard: {
     backgroundColor: '#fbfaf2',
     borderRadius: 15,
@@ -597,7 +564,6 @@ const styles = StyleSheet.create({
   taskSubtitle: { fontSize: 14, color: '#666', marginTop: 2 },
   statusBadge: { borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'flex-start' },
   statusText: { color: '#fbfaf2', fontWeight: '600' },
-
   expandedCard: {
     backgroundColor: '#f6f6f6',
     borderRadius: 12,
@@ -609,7 +575,6 @@ const styles = StyleSheet.create({
   detailLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 6 },
   detailText: { fontSize: 14, color: '#444', marginTop: 2 },
   detailElo: { fontSize: 15, color: '#1bb998', fontWeight: '700', marginTop: 2 },
-
   emptyText: { textAlign: 'center', color: '#888', marginBottom: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });
