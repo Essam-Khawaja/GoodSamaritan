@@ -2,7 +2,7 @@
 import { ExpoConfig } from '@expo/config-types';
 import 'dotenv/config';
 
-const config: ExpoConfig = {
+const config: ExpoConfig = { 
   name: 'frontend',
   slug: 'frontend',
   version: '1.0.0',
