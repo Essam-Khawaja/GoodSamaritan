@@ -1,7 +1,8 @@
-// app/addTask.tsx
+// app/addOrgTask.tsx
 import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   SafeAreaView,
@@ -11,49 +12,19 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, MapPressEvent, Region } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 
 type LatLng = { latitude: number; longitude: number };
 
-/**
- * Backend payload for creating a task
- * (aligns with your task schema)
- */
-type BackendCreateTaskPayload = {
-  title: string;
-  description: string;
-  samaritanScore: number;
-  latitude: number;
-  longitude: number;
-  orgId: string;
-  taskStatus: number; // e.g. 0 = Unclaimed
-  userId?: string | null; // no user yet at creation
-};
-
-// TODO: replace with orgId from auth / context
-const CURRENT_ORG_ID = 'TODO_CURRENT_ORG_ID';
-
-/**
- * Placeholder API call to create a task for an org.
- * Wire this up to your Python backend.
- */
-async function createOrgTask(payload: BackendCreateTaskPayload): Promise<void> {
-  // Example shape:
-  // await fetch('https://your-backend/api/tasks', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // });
-  console.log('Sending task to backend:', payload);
-}
-
-export default function AddTask() {
+export default function AddOrgTask() {
   const router = useRouter();
 
-  const [taskName, setTaskName] = useState('');
+  // TODO: replace this with orgId from auth context / route params
+  const orgId = 'ORG_ID_FROM_BACKEND';
+
+  const [taskTitle, setTaskTitle] = useState('');
   const [description, setDescription] = useState('');
   const [samaritanScore, setSamaritanScore] = useState('');
   const [locationCoords, setLocationCoords] = useState<LatLng | null>(null);
@@ -68,10 +39,9 @@ export default function AddTask() {
   });
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
 
-  const [creating, setCreating] = useState(false);
-
   const mapRef = useRef<MapView | null>(null);
 
+  // Get user location for centering the map
   useEffect(() => {
     let mounted = true;
 
@@ -98,7 +68,7 @@ export default function AddTask() {
           longitude: coords.longitude,
         }));
       } catch {
-        // silently fail; map will just use default region
+        // silently fail, map will still load
       } finally {
         if (mounted) setMapLoading(false);
       }
@@ -149,45 +119,52 @@ export default function AddTask() {
     }
   };
 
-  const handleCreateTask = async () => {
-    if (!taskName.trim() || !description.trim() || !samaritanScore.trim() || !locationCoords) {
-      Alert.alert('Missing Information', 'Please fill in all fields and choose a location.');
+  const handleCreateTask = () => {
+    if (
+      !taskTitle.trim() ||
+      !description.trim() ||
+      !samaritanScore.trim() ||
+      !locationCoords
+    ) {
+      Alert.alert(
+        'Missing Information',
+        'Please fill in all fields and choose a location.'
+      );
       return;
     }
 
     const scoreNumber = Number(samaritanScore);
     if (Number.isNaN(scoreNumber) || scoreNumber <= 0) {
-      Alert.alert('Invalid Samaritan Score', 'Please enter a positive number.');
+      Alert.alert(
+        'Invalid Samaritan Score',
+        'Please enter a positive number.'
+      );
       return;
     }
 
-    const payload: BackendCreateTaskPayload = {
-      title: taskName.trim(),
-      description: description.trim(),
-      samaritanScore: scoreNumber,
-      latitude: locationCoords.latitude,
-      longitude: locationCoords.longitude,
-      orgId: CURRENT_ORG_ID,
-      taskStatus: 0, // 0 = Unclaimed (adjust to your backend enum)
-      userId: null,
+    // Backend-friendly payload (matches your data model)
+    const newTaskPayload = {
+      taskTitle: taskTitle.trim(),          // string
+      taskDescription: description.trim(),  // string
+      latitude: locationCoords.latitude,    // number
+      longitude: locationCoords.longitude,  // number
+      samaritanScore: scoreNumber,         // number
+      orgId,                               // string (org the task is associated with)
+      userId: null,                        // no user yet
+      taskStatus: 0,                       // e.g. 0 = Unclaimed (you define mapping)
     };
 
-    try {
-      setCreating(true);
-      await createOrgTask(payload);
+    console.log('Org task payload to send to backend:', newTaskPayload);
 
-      Alert.alert('Task Created', 'Your task has been created.', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
-    } catch (err) {
-      console.error('Failed to create task', err);
-      Alert.alert('Error', 'There was a problem creating the task. Please try again.');
-    } finally {
-      setCreating(false);
-    }
+    // TODO: replace with actual POST to backend
+    // await api.createOrgTask(newTaskPayload);
+
+    Alert.alert('Task Created', 'Your task has been created.', [
+      {
+        text: 'OK',
+        onPress: () => router.back(),
+      },
+    ]);
   };
 
   return (
@@ -203,17 +180,19 @@ export default function AddTask() {
 
         <Text style={styles.title}>Add Task</Text>
 
+        {/* Task Title */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Task Name</Text>
           <TextInput
             style={styles.input}
-            value={taskName}
-            onChangeText={setTaskName}
+            value={taskTitle}
+            onChangeText={setTaskTitle}
             placeholder=""
             placeholderTextColor="#9ca3af"
           />
         </View>
 
+        {/* Description */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Description</Text>
           <TextInput
@@ -226,6 +205,7 @@ export default function AddTask() {
           />
         </View>
 
+        {/* Samaritan Score */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Samaritan Score</Text>
           <TextInput
@@ -238,43 +218,36 @@ export default function AddTask() {
           />
         </View>
 
+        {/* Location Picker */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Location</Text>
 
           <TouchableOpacity style={styles.locationButton} onPress={openMapPicker}>
             <Text style={styles.locationButtonText}>
-              {locationCoords
-                ? `Lat ${locationCoords.latitude.toFixed(4)}, Lon ${locationCoords.longitude.toFixed(
-                    4
-                  )}`
-                : 'Pick Location'}
+              {locationCoords ? 'Location Selected' : 'Pick Location'}
             </Text>
           </TouchableOpacity>
         </View>
 
+        {/* Actions */}
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={() => router.back()}
-            disabled={creating}
           >
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.createButton, creating && { opacity: 0.7 }]}
+            style={styles.createButton}
             onPress={handleCreateTask}
-            disabled={creating}
           >
-            {creating ? (
-              <ActivityIndicator color="#fbfaf2" />
-            ) : (
-              <Text style={styles.createText}>Create Task</Text>
-            )}
+            <Text style={styles.createText}>Create Task</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
+      {/* Map Picker Modal */}
       <Modal visible={mapVisible} animationType="slide">
         <SafeAreaView style={styles.mapContainer}>
           <View style={styles.mapHeader}>
