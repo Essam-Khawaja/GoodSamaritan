@@ -16,13 +16,15 @@ import {
   SafeAreaView,
 } from "react-native";
 
+
+
 interface AuthScreenProps {
   userType: "civilian" | "organization";
   onAuthSuccess: (user: any) => void;
   onBack: () => void;
 }
 
-const API_BASE_URL = process.env.AWS_BASE_URL;
+const API_BASE_URL = process.env.EXPO_PUBLIC_AWS_BASE_URL;
 export default function AuthScreen({
   userType,
   onAuthSuccess,
