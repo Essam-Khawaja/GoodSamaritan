@@ -4,10 +4,11 @@ import { useRouter } from 'expo-router';
 
 export default function LandingPage() {
   const router = useRouter(); 
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>GoodSamaritan</Text>
-      {/* Samaritan Buttons */}
+
       <View style={styles.row}>
         <TouchableOpacity
           style={styles.button}
@@ -17,27 +18,36 @@ export default function LandingPage() {
         </TouchableOpacity>
 
         <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push('/returningSamaritan')}
+          style={styles.button}
+          onPress={() => router.push('/returningSamaritan')}
         >
-        <Text style={styles.buttonText}>Returning Samaritan</Text>
+          <Text style={styles.buttonText}>Returning Samaritan</Text>
         </TouchableOpacity>
-
       </View>
 
-      {/* Organization Buttons */}
       <View style={styles.row}>
         <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.push('/newOrganization')}
-            >
-            <Text style={styles.buttonText}>New Organization</Text>
+          style={styles.button}
+          onPress={() => router.push('/newOrganization')}
+        >
+          <Text style={styles.buttonText}>New Organization</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.push('/returningOrganization')}
-            >
-            <Text style={styles.buttonText}>Returning Organization</Text>
+          style={styles.button}
+          onPress={() => router.push('/returningOrganization')}
+        >
+          <Text style={styles.buttonText}>Returning Organization</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Temporary direct login for testing */}
+      <View style={styles.tempContainer}>
+        <TouchableOpacity
+          style={styles.tempButton}
+          onPress={() => router.push('/userMainDashboard')}
+        >
+          <Text style={styles.tempButtonText}>Login as Test User →</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -85,5 +95,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fbfaf2',
     textAlign: 'center',
+  },
+  tempContainer: {
+    marginTop: 40,
+    alignItems: 'center',
+  },
+  tempButton: {
+    backgroundColor: '#1bb998',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+  },
+  tempButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fbfaf2',
   },
 });
