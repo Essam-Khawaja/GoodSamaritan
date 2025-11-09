@@ -1,4 +1,3 @@
-// app/mapDash.tsx
 import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -26,53 +25,18 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-/**
- * BACKEND-SIDE TYPES (shape of your API responses)
- */
-type UserStats = {
-  samaritanScore: number;
-  // tasksCompleted?: number;
-  // tasksInProgress?: number;
-  // rank?: number;
-};
-
-type UserProfile = {
-  userId: string;
-  email: string;
-  fullName: string;
-  userStats: UserStats;
-};
-
-type BackendTask = {
-  taskId: string;
-  title: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  samaritanScore: number;
-  orgId: string;
-  orgEmail: string;
-  orgName: string;
-  userId: string | null; // null if unclaimed
-  taskStatus: number;    // e.g. 0=Available, 1=Pending, 2=Done, 3=Incomplete
-};
-
-/**
- * FRONTEND-SIDE TYPES (what the screen uses)
- */
 type TaskStatus = 'Done' | 'Pending' | 'Incomplete' | 'Available';
 type LatLng = { latitude: number; longitude: number };
-
 type Task = {
-  id: string;              // maps from taskId
+  id: string;
   title: string;
-  organization: string;    // orgName
+  organization: string;
+  location: string;
   description: string;
-  elo: number;             // samaritanScore for this task
+  elo: number;
   status: TaskStatus;
-  coords: LatLng;          // from latitude / longitude
+  coords: LatLng;
 };
-
 type Coords = Location.LocationObjectCoords;
 
 const STATUS_PIN_COLORS: Record<TaskStatus, string> = {
@@ -84,102 +48,6 @@ const STATUS_PIN_COLORS: Record<TaskStatus, string> = {
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-// Replace this with however you store the logged-in user
-const CURRENT_USER_ID = 'TODO_CURRENT_USER_ID';
-
-/**
- * Helpers to map backend → UI
- */
-function mapBackendStatusToTaskStatus(taskStatus: number): TaskStatus {
-  // Adjust this mapping to match your actual enum on the backend
-  // Example: 0=Available, 1=Pending, 2=Done, 3=Incomplete
-  switch (taskStatus) {
-    case 2:
-      return 'Done';
-    case 1:
-      return 'Pending';
-    case 3:
-      return 'Incomplete';
-    case 0:
-    default:
-      return 'Available';
-  }
-}
-
-function mapBackendTaskToTask(t: BackendTask): Task {
-  return {
-    id: t.taskId,
-    title: t.title,
-    organization: t.orgName,
-    description: t.description,
-    elo: t.samaritanScore,
-    status: mapBackendStatusToTaskStatus(t.taskStatus),
-    coords: {
-      latitude: t.latitude,
-      longitude: t.longitude,
-    },
-  };
-}
-
-/**
- * Placeholder API functions – plug your real backend here.
- * These are intentionally simple so you only need to swap out the internals.
- */
-
-async function fetchUserProfile(userId: string): Promise<UserProfile> {
-  // TODO: Replace with real backend call, e.g.:
-  // const res = await fetch(`https://api.yourapp.com/users/${userId}`);
-  // if (!res.ok) throw new Error('Failed to fetch user');
-  // return await res.json();
-
-  // Temporary placeholder so the screen renders:
-  return {
-    userId,
-    email: 'user@example.com',
-    fullName: 'User',
-    userStats: {
-      samaritanScore: 0,
-    },
-  };
-}
-
-async function fetchUserTasks(userId: string): Promise<BackendTask[]> {
-  // TODO: Replace with real backend call, e.g.:
-  // const res = await fetch(`https://api.yourapp.com/users/${userId}/tasks`);
-  // if (!res.ok) throw new Error('Failed to fetch user tasks');
-  // return await res.json();
-
-  // Temporary: no tasks until backend is wired
-  return [];
-}
-
-async function fetchAvailableTasks(
-  latitude: number,
-  longitude: number
-): Promise<BackendTask[]> {
-  // TODO: Replace with real backend call, e.g.:
-  // const res = await fetch(
-  //   `https://api.yourapp.com/tasks/available?lat=${latitude}&lon=${longitude}`
-  // );
-  // if (!res.ok) throw new Error('Failed to fetch available tasks');
-  // return await res.json();
-
-  // Temporary: no tasks until backend is wired
-  return [];
-}
-
-async function claimTaskOnBackend(taskId: string, userId: string): Promise<void> {
-  // TODO: Replace with real backend call, e.g.:
-  // await fetch(`https://api.yourapp.com/tasks/${taskId}/claim`, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ userId }),
-  // });
-}
-
-/**
- * Component
- */
 export default function UserDashboard() {
   const router = useRouter();
   const screenH = Dimensions.get('window').height;
@@ -188,15 +56,14 @@ export default function UserDashboard() {
   const MAP_EXPANDED = Math.round(screenH * 0.3);
 
   const [username, setUsername] = useState<string>('User');
-  const [samaritanScore, setSamaritanScore] = useState<number>(0);
+  const [samaritanScore, setSamaritanScore] = useState<number>(1234);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const [coords, setCoords] = useState<Coords | null>(null);
-  const [loadingLocation, setLoadingLocation] = useState(true);
-  const [loadingData, setLoadingData] = useState(false);
-
+  const [loading, setLoading] = useState(true);
+  const [userLatLon, setUserLatLon] = useState<{ lat: number; lon: number } | null>(null);
   const mapRef = useRef<MapView | null>(null);
   const subRef = useRef<Location.LocationSubscription | null>(null);
 
@@ -290,76 +157,87 @@ export default function UserDashboard() {
     })
   ).current;
 
-  /**
-   * Location subscription
-   */
+  useEffect(() => {
+    (async () => {
+      await new Promise((r) => setTimeout(r, 200));
+      setUsername('User');
+      setSamaritanScore(1234);
+      setMyTasks([
+        {
+          id: '1',
+          title: 'Park Cleanup',
+          organization: 'EcoVolunteers',
+          location: 'Central Park',
+          description: 'Clean the local park with other volunteers.',
+          elo: 120,
+          status: 'Done',
+          coords: { latitude: 51.078365, longitude: -114.128307 },
+        },
+        {
+          id: '2',
+          title: 'Sort Donations',
+          organization: 'Greenwood Shelter',
+          location: 'Greenwood Community Center',
+          description: 'Sort and label incoming clothing donations.',
+          elo: 90,
+          status: 'Pending',
+          coords: { latitude: 51.0779, longitude: -114.1316 },
+        },
+      ]);
+      setAvailableTasks([
+        {
+          id: '3',
+          title: 'Help Seniors',
+          organization: 'Lincoln Community Center',
+          location: 'Lincoln Neighborhood',
+          description: 'Assist seniors with errands and tech setup.',
+          elo: 150,
+          status: 'Available',
+          coords: { latitude: 51.0759, longitude: -114.1296 },
+        },
+        {
+          id: '4',
+          title: 'Organize Event',
+          organization: 'Westside Gardeners',
+          location: 'Westside Community Garden',
+          description: 'Plan the community planting day.',
+          elo: 100,
+          status: 'Available',
+          coords: { latitude: 51.0801, longitude: -114.1335 },
+        },
+      ]);
+    })();
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission needed',
-          'Enable Location access in Settings to show your position.'
-        );
-        setLoadingLocation(false);
+        Alert.alert('Permission needed', 'Enable Location access in Settings to show your position.');
+        setLoading(false);
         return;
       }
-
       const last = await Location.getLastKnownPositionAsync();
       if (mounted && last?.coords) {
         setCoords(last.coords);
+        setUserLatLon({ lat: last.coords.latitude, lon: last.coords.longitude });
       }
-
       subRef.current = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 3000, distanceInterval: 5 },
         (loc) => {
           if (!mounted) return;
           setCoords(loc.coords);
+          setUserLatLon({ lat: loc.coords.latitude, lon: loc.coords.longitude });
         }
       );
-
-      setLoadingLocation(false);
+      setLoading(false);
     })();
-
     return () => {
       mounted = false;
       subRef.current?.remove();
     };
   }, []);
-
-  /**
-   * Fetch user + tasks once we have coordinates
-   */
-  useEffect(() => {
-    if (!coords) return;
-
-    const loadData = async () => {
-      try {
-        setLoadingData(true);
-
-        const [userProfile, myTasksBackend, availableTasksBackend] = await Promise.all([
-          fetchUserProfile(CURRENT_USER_ID),
-          fetchUserTasks(CURRENT_USER_ID),
-          fetchAvailableTasks(coords.latitude, coords.longitude),
-        ]);
-
-        setUsername(userProfile.fullName);
-        setSamaritanScore(userProfile.userStats.samaritanScore);
-
-        setMyTasks(myTasksBackend.map(mapBackendTaskToTask));
-        setAvailableTasks(availableTasksBackend.map(mapBackendTaskToTask));
-      } catch (err) {
-        console.error('Failed to load dashboard data', err);
-        Alert.alert('Error', 'Unable to load your tasks right now. Please try again later.');
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    loadData();
-  }, [coords]);
 
   const initialRegion: Region = {
     latitude: coords?.latitude ?? 51.078365,
@@ -380,26 +258,20 @@ export default function UserDashboard() {
     });
   };
 
-  const claimTask = async (id: string) => {
-    const task = availableTasks.find((t) => t.id === id);
-    if (!task) return;
-
-    // Optimistic UI update
+  const claimTask = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setAvailableTasks((prev) => prev.filter((t) => t.id !== id));
-    setMyTasks((prev) => [{ ...task, status: 'Pending' }, ...prev]);
-    setExpandedIds(new Set([id]));
+    setAvailableTasks((prevAvail) => {
+      const task = prevAvail.find((t) => t.id === id);
+      if (!task) return prevAvail;
 
-    try {
-      await claimTaskOnBackend(id, CURRENT_USER_ID);
-      // Optionally refetch user profile / tasks here if you want fresh scores
-    } catch (err) {
-      console.error('Failed to claim task', err);
-      Alert.alert('Error', 'Could not claim this task. Please try again.');
-      // Roll back optimistic change
-      setMyTasks((prev) => prev.filter((t) => t.id !== id));
-      setAvailableTasks((prev) => [task, ...prev]);
-    }
+      const remaining = prevAvail.filter((t) => t.id !== id);
+      const updated: Task = { ...task, status: 'Pending' };
+
+      setMyTasks((prevMy) => [updated, ...prevMy]);
+      setExpandedIds(new Set([id]));
+
+      return remaining;
+    });
   };
 
   const focusTask = (id: string) => {
@@ -456,7 +328,7 @@ export default function UserDashboard() {
               <Text style={styles.detailLabel}>Description</Text>
               <Text style={styles.detailText}>{item.description}</Text>
 
-              <Text style={styles.detailLabel}>Samaritan Score</Text>
+              <Text style={styles.detailLabel}>Elo Reward</Text>
               <Text style={styles.detailElo}>+{item.elo} pts</Text>
 
               {item.status === 'Available' && (
@@ -469,14 +341,14 @@ export default function UserDashboard() {
         </View>
       );
     },
-    [expandedIds, claimTask]
+    [expandedIds]
   );
 
-  const isLoadingLocation = loadingLocation && !coords;
+  const isLoading = loading && !coords;
 
   return (
     <SafeAreaView style={styles.root}>
-      {isLoadingLocation ? (
+      {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator />
           <Text style={{ marginTop: 8 }}>Getting your location…</Text>
@@ -555,14 +427,8 @@ export default function UserDashboard() {
                 style={{ flex: 1 }}
                 contentContainerStyle={{ paddingBottom: 32 }}
               >
-                {loadingData && (
-                  <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                    <ActivityIndicator />
-                  </View>
-                )}
-
                 <Text style={styles.sectionTitle}>My Tasks</Text>
-                {myTasks.length === 0 && !loadingData ? (
+                {myTasks.length === 0 ? (
                   <Text style={styles.emptyText}>You have no tasks yet.</Text>
                 ) : (
                   <FlatList
@@ -574,7 +440,7 @@ export default function UserDashboard() {
                 )}
 
                 <Text style={styles.sectionTitle}>Tasks Available</Text>
-                {availableTasks.length === 0 && !loadingData ? (
+                {availableTasks.length === 0 ? (
                   <Text style={styles.emptyText}>No available tasks right now.</Text>
                 ) : (
                   <FlatList
@@ -638,12 +504,7 @@ const styles = StyleSheet.create({
   },
   peekScoreLabel: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
   peekScoreValue: { color: '#fff', fontSize: 18, fontWeight: '800', marginTop: 2 },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6,
-  },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
   greeting: { fontSize: 22, fontWeight: '600', color: '#000' },
   username: { fontSize: 26, fontWeight: '700', color: '#000' },
   scoreBox: {
@@ -701,12 +562,7 @@ const styles = StyleSheet.create({
   taskTextContainer: { flex: 1 },
   taskTitle: { fontSize: 16, fontWeight: '600', color: '#000' },
   taskSubtitle: { fontSize: 14, color: '#666', marginTop: 2 },
-  statusBadge: {
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    alignSelf: 'flex-start',
-  },
+  statusBadge: { borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14, alignSelf: 'flex-start' },
   statusText: { color: '#fbfaf2', fontWeight: '600' },
   expandedCard: {
     backgroundColor: '#f6f6f6',
