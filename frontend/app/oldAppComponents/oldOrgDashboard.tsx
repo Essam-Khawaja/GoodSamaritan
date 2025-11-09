@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { useRouter } from 'expo-router'; 
 import {
   View,
   Text,
@@ -11,172 +11,83 @@ import {
   UIManager,
   Platform,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-/**
- * UI enums
- */
 type TaskStatus = 'Unclaimed' | 'Claimed' | 'Completed' | 'Incomplete';
 type Evaluation = 'None' | 'Complete' | 'Incomplete';
 
-/**
- * Backend shapes (adjust to match your API exactly)
- */
-type BackendTask = {
-  taskId: string;
-  title: string;
-  description: string;
-  samaritanScore: number; // base magnitude of Samaritan Score for this task
-  orgId: string;
-  userId?: string | null; // user who claimed/completed
-  claimedByFullName?: string | null;
-  taskStatus: number; // int status from backend (e.g. 0,1,2,3)
-};
-
-type BackendOrgDashboard = {
-  orgId: string;
-  orgName: string;
-  tasks: BackendTask[];
-};
-
-// UI Task type for this screen
 type Task = {
   id: string;
   title: string;
   description: string;
   status: TaskStatus;
-  samaritanScoreImpact: number; // can be positive or negative
+  elo: number;
   claimedBy?: string;
-  evaluation: Evaluation;
+  evaluation?: Evaluation;
 };
 
-// Replace with your real org ID from auth
-const CURRENT_ORG_ID = 'TODO_CURRENT_ORG_ID';
-
-/**
- * Map backend int taskStatus → UI TaskStatus
- * Adjust mapping to match your backend enum.
- */
-function mapTaskStatus(status: number): TaskStatus {
-  // Example:
-  // 0 = unclaimed, 1 = claimed, 2 = completed, 3 = incomplete
-  switch (status) {
-    case 0:
-      return 'Unclaimed';
-    case 1:
-      return 'Claimed';
-    case 3:
-      return 'Incomplete';
-    case 2:
-    default:
-      return 'Completed';
-  }
-}
-
-/**
- * Convert BackendTask → Task used in the UI
- */
-function mapBackendTaskToUiTask(t: BackendTask): Task {
-  const status = mapTaskStatus(t.taskStatus);
-
-  // Base impact is positive magnitude from backend.
-  // If backend already knows it's incomplete and wants penalty, you could send negative.
-  // Here we assume backend sends positive, and we flip sign for incomplete.
-  const base = t.samaritanScore;
-  const impact =
-    status === 'Incomplete'
-      ? -Math.abs(base)
-      : Math.abs(base);
-
-  let evaluation: Evaluation = 'None';
-  if (status === 'Completed') evaluation = 'Complete';
-  if (status === 'Incomplete') evaluation = 'Incomplete';
-
-  return {
-    id: t.taskId,
-    title: t.title,
-    description: t.description,
-    status,
-    samaritanScoreImpact: impact,
-    claimedBy: t.claimedByFullName ?? undefined,
-    evaluation,
-  };
-}
-
-/**
- * Placeholder API call to fetch all org dashboard data in one shot.
- * Wire this to your Python backend.
- */
-async function fetchOrgDashboard(orgId: string): Promise<BackendOrgDashboard> {
-  // TODO: Replace this with real network request, e.g.:
-  //
-  // const res = await fetch(`https://api.yourapp.com/orgs/${orgId}/dashboard`);
-  // if (!res.ok) throw new Error('Failed to load org dashboard');
-  // return await res.json();
-  //
-  return {
-    orgId,
-    orgName: 'Your Organization Name',
-    tasks: [],
-  };
-}
-
-/**
- * Placeholder API call to persist evaluation + penalty.
- * You can call your backend here to update task status & user stats.
- */
-async function updateTaskEvaluation(
-  orgId: string,
-  taskId: string,
-  evaluation: Evaluation
-): Promise<void> {
-  // TODO: POST to /orgs/{orgId}/tasks/{taskId}/evaluation with { evaluation }
-  // Backend can compute and store the samaritan score impact, and update taskStatus.
-  return;
-}
-
 export default function OrgDashboard() {
-  const router = useRouter();
-  const [orgName, setOrgName] = useState<string>('Organization');
+  const orgName = 'Org Name Here';
   const [selectedTab, setSelectedTab] = useState<TaskStatus>('Unclaimed');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const router = useRouter();
 
-  useEffect(() => {
-    const loadOrgDashboard = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchOrgDashboard(CURRENT_ORG_ID);
-        setOrgName(data.orgName);
-        setTasks(data.tasks.map(mapBackendTaskToUiTask));
-      } catch (err) {
-        console.error('Failed to load org dashboard', err);
-        // Optional: show Alert here
-      } finally {
-        setLoading(false);
-      }
-    };
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: '1',
+      title: 'Park Cleanup',
+      description: 'Help clean up the local community park.',
+      status: 'Unclaimed',
+      elo: 120,
+    },
+    {
+      id: '2',
+      title: 'Food Drive',
+      description: 'Collect and organize donated food items.',
+      status: 'Unclaimed',
+      elo: 100,
+    },
+    {
+      id: '3',
+      title: 'Toy Donation',
+      description: 'Deliver donated toys to the children’s center.',
+      status: 'Claimed',
+      claimedBy: 'Alex Johnson',
+      elo: 80,
+      evaluation: 'None',
+    },
+    {
+      id: '4',
+      title: 'Community Garden',
+      description: 'Assist in planting and maintaining the garden.',
+      status: 'Completed',
+      claimedBy: 'Taylor Lee',
+      elo: 150,
+      evaluation: 'Complete',
+    },
+    {
+      id: '5',
+      title: 'Book Sorting',
+      description: 'Sort and categorize donated books for the library.',
+      status: 'Incomplete',
+      claimedBy: 'Jordan Smith',
+      elo: -100,
+      evaluation: 'Incomplete',
+    },
+  ]);
 
-    loadOrgDashboard();
-  }, []);
-
-  // Tab filter: Completed tab shows both Completed and Incomplete
   const filteredTasks = tasks.filter((task) =>
     selectedTab === 'Completed'
       ? task.status === 'Completed' || task.status === 'Incomplete'
       : task.status === selectedTab
   );
 
-  const handleEvaluation = async (id: string, result: Evaluation) => {
+  const handleEvaluation = (id: string, result: Evaluation) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-
-    // Optimistic UI update
     setTasks((prev) =>
       prev.map((t) => {
         if (t.id !== id) return t;
@@ -185,26 +96,17 @@ export default function OrgDashboard() {
           return { ...t, evaluation: result };
         }
 
-        const baseMagnitude = Math.abs(t.samaritanScoreImpact || 0) || 0;
-        const impact =
-          result === 'Complete' ? baseMagnitude : -baseMagnitude;
+        const eloValue =
+          result === 'Complete' ? Math.abs(t.elo) : -Math.abs(t.elo);
 
         return {
           ...t,
           evaluation: result,
           status: result === 'Complete' ? 'Completed' : 'Incomplete',
-          samaritanScoreImpact: impact,
+          elo: eloValue,
         };
       })
     );
-
-    // Persist to backend
-    try {
-      await updateTaskEvaluation(CURRENT_ORG_ID, id, result);
-    } catch (err) {
-      console.error('Failed to update task evaluation', err);
-      // Optional: rollback or show Alert
-    }
   };
 
   const confirmDelete = (id: string, title: string) => {
@@ -225,9 +127,6 @@ export default function OrgDashboard() {
   const handleDelete = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setTasks((prev) => prev.filter((t) => t.id !== id));
-
-    // TODO: call backend to delete task:
-    // await deleteOrgTask(CURRENT_ORG_ID, id)
   };
 
   const toggleExpand = (id: string) => {
@@ -278,16 +177,14 @@ export default function OrgDashboard() {
               </>
             )}
 
-            <Text style={styles.detailLabel}>Samaritan Score Impact</Text>
+            <Text style={styles.detailLabel}>Elo Impact</Text>
             <Text
               style={[
                 styles.detailElo,
-                item.samaritanScoreImpact < 0 && { color: '#E57373' },
+                item.elo < 0 && { color: '#E57373' },
               ]}
             >
-              {item.samaritanScoreImpact >= 0
-                ? `+${item.samaritanScoreImpact} pts`
-                : `${item.samaritanScoreImpact} pts`}
+              {item.elo >= 0 ? `+${item.elo} pts` : `${item.elo} pts`}
             </Text>
 
             {isClaimedTab && (
@@ -319,7 +216,7 @@ export default function OrgDashboard() {
                     <Text style={styles.evaluationResultText}>
                       {item.evaluation === 'Complete'
                         ? 'Marked Complete'
-                        : 'Marked Incomplete (Samaritan Score Penalty Applied)'}
+                        : 'Marked Incomplete (Elo Penalty Applied)'}
                     </Text>
                   </View>
                 )}
@@ -374,22 +271,16 @@ export default function OrgDashboard() {
         ))}
       </View>
 
-      {loading ? (
-        <View style={{ marginTop: 20, alignItems: 'center' }}>
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredTasks}
-          renderItem={renderTask}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No tasks under this category.</Text>
-          }
-        />
-      )}
+      <FlatList
+        data={filteredTasks}
+        renderItem={renderTask}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No tasks under this category.</Text>
+        }
+      />
 
       {selectedTab === 'Unclaimed' && (
         <TouchableOpacity
