@@ -6,72 +6,67 @@ interface BottomNavProps {
   onNavigate: (
     screen: "home" | "profile" | "leaderboard" | "organization"
   ) => void;
+  userType?: "user" | "org" | null;
 }
 
 export default function BottomNav({
   currentScreen,
   onNavigate,
+  userType,
 }: BottomNavProps) {
+  // Don't render until we know the user type
+  if (!userType) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.nav}>
-        <TouchableOpacity
-          onPress={() => onNavigate("home")}
-          style={[
-            styles.navButton,
-            currentScreen === "home" && styles.navButtonActive,
-          ]}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.navIcon}>🏠</Text>
-          <Text
+        {/* Main/Home button - shows for regular users */}
+        {userType === "user" && (
+          <TouchableOpacity
+            onPress={() => onNavigate("home")}
             style={[
-              styles.navLabel,
-              currentScreen === "home" && styles.navLabelActive,
+              styles.navButton,
+              currentScreen === "home" && styles.navButtonActive,
             ]}
+            activeOpacity={0.7}
           >
-            Home
-          </Text>
-        </TouchableOpacity>
+            <Text style={styles.navIcon}>🏠</Text>
+            <Text
+              style={[
+                styles.navLabel,
+                currentScreen === "home" && styles.navLabelActive,
+              ]}
+            >
+              Home
+            </Text>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          onPress={() => onNavigate("leaderboard")}
-          style={[
-            styles.navButton,
-            currentScreen === "leaderboard" && styles.navButtonActive,
-          ]}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.navIcon}>🏆</Text>
-          <Text
+        {/* Organization button - shows for org users */}
+        {userType === "org" && (
+          <TouchableOpacity
+            onPress={() => onNavigate("organization")}
             style={[
-              styles.navLabel,
-              currentScreen === "leaderboard" && styles.navLabelActive,
+              styles.navButton,
+              currentScreen === "organization" && styles.navButtonActive,
             ]}
+            activeOpacity={0.7}
           >
-            Leaderboard
-          </Text>
-        </TouchableOpacity>
+            <Text style={styles.navIcon}>🏢</Text>
+            <Text
+              style={[
+                styles.navLabel,
+                currentScreen === "organization" && styles.navLabelActive,
+              ]}
+            >
+              Organize
+            </Text>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          onPress={() => onNavigate("organization")}
-          style={[
-            styles.navButton,
-            currentScreen === "organization" && styles.navButtonActive,
-          ]}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.navIcon}>🏢</Text>
-          <Text
-            style={[
-              styles.navLabel,
-              currentScreen === "organization" && styles.navLabelActive,
-            ]}
-          >
-            Organize
-          </Text>
-        </TouchableOpacity>
-
+        {/* Profile button - shows for everyone */}
         <TouchableOpacity
           onPress={() => onNavigate("profile")}
           style={[

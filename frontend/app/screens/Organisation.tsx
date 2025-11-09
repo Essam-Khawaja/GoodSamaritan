@@ -25,6 +25,7 @@ interface OrganizationScreenProps {
   onNavigate: (
     screen: "home" | "profile" | "leaderboard" | "organization"
   ) => void;
+  userType?: "user" | "org" | null;
 }
 
 interface MapLocation {
@@ -34,6 +35,7 @@ interface MapLocation {
 
 export default function OrganizationScreen({
   onNavigate,
+  userType,
 }: OrganizationScreenProps) {
   const [questTitle, setQuestTitle] = useState("");
   const [questDescription, setQuestDescription] = useState("");
@@ -349,7 +351,11 @@ export default function OrganizationScreen({
           </View>
         </ScrollView>
 
-        <BottomNav currentScreen="organization" onNavigate={onNavigate} />
+        <BottomNav
+          currentScreen="organization"
+          onNavigate={onNavigate}
+          userType={userType}
+        />
       </View>
     </SafeAreaView>
   );

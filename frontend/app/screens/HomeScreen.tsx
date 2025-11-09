@@ -9,21 +9,21 @@ import {
   ActivityIndicator,
 } from "react-native";
 import BottomNav from "../components/BottomNav";
+import QuestDetailsModal from "../components/QuestDetailsModal";
 import type { Task } from "../types";
 import React, { useState, useEffect } from "react";
 import * as Location from "expo-location";
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import { getUserId } from "../storage";
 
-// Replace with your actual AWS API endpoint
 const API_BASE_URL = process.env.EXPO_PUBLIC_AWS_BASE_URL;
 const API_ENDPOINT = `${API_BASE_URL}/user-getTasks`;
 
 interface HomeScreenProps {
-  onQuestSelect: (task: Task) => void;
   onNavigate: (
     screen: "home" | "profile" | "leaderboard" | "organization"
   ) => void;
+  userType?: "user" | "org" | null;
 }
 
 interface UserLocation {
@@ -31,21 +31,17 @@ interface UserLocation {
   longitude: number;
 }
 
-export default function HomeScreen({
-  onQuestSelect,
-  onNavigate,
-}: HomeScreenProps) {
+export default function HomeScreen({ onNavigate, userType }: HomeScreenProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapExpanded, setMapExpanded] = useState(false);
 
-  // Get user location on mount
   useEffect(() => {
     getUserLocation();
   }, []);
 
-  // Fetch tasks when user location is available
   useEffect(() => {
     if (userLocation) {
       fetchTasks();
@@ -54,7 +50,6 @@ export default function HomeScreen({
 
   const getUserLocation = async () => {
     try {
-      // Request permission
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status !== "granted") {
@@ -66,7 +61,6 @@ export default function HomeScreen({
         return;
       }
 
-      // Get current location
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
@@ -90,14 +84,13 @@ export default function HomeScreen({
     try {
       setLoading(true);
 
-      // Make API call to your AWS backend
       const response = await fetch(`${API_ENDPOINT}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userID: getUserId(),
+          userID: await getUserId(),
           latitude: userLocation.latitude.toString(),
           longitude: userLocation.longitude.toString(),
         }),
@@ -107,15 +100,9 @@ export default function HomeScreen({
         throw new Error("Failed to fetch tasks");
       }
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch tasks");
-      }
-
-      // Parse the response body
       const responseBody = await response.json();
-      const data = JSON.parse(responseBody.body); // Parse the stringified JSON
+      const data = JSON.parse(responseBody.body);
 
-      // Filter for available tasks (status: 3)
       const availableTasks =
         data.tasks?.filter((task: Task) => task.status === 3) || [];
       setTasks(availableTasks);
@@ -127,11 +114,53 @@ export default function HomeScreen({
     }
   };
 
-  // Calculate distance using Haversine formula
+  const handleTaskSelect = (task: Task) => {
+    setSelectedTask(task);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTask(null);
+  };
+
+  const handleAcceptQuest = async (taskID: string) => {
+    try {
+      const userID = await getUserId();
+
+      if (!userID) {
+        Alert.alert("Error", "User not logged in");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/claimTask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userID: userID,
+          taskID: taskID,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success !== false) {
+        Alert.alert("Success", "Quest accepted! Good luck!");
+        // Refresh tasks after accepting
+        await fetchTasks();
+      } else {
+        Alert.alert("Error", data.message || "Failed to accept quest");
+      }
+    } catch (error) {
+      console.error("Error accepting quest:", error);
+      Alert.alert("Error", "Failed to accept quest. Please try again.");
+    }
+  };
+
   const calculateDistance = (lat: number, lng: number): string => {
     if (!userLocation) return "-- km";
 
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = toRad(lat - userLocation.latitude);
     const dLng = toRad(lng - userLocation.longitude);
 
@@ -202,7 +231,6 @@ export default function HomeScreen({
 
   const getInitialRegion = () => {
     if (!userLocation) {
-      // Default to Calgary if no location
       return {
         latitude: 51.0447,
         longitude: -114.0719,
@@ -233,7 +261,6 @@ export default function HomeScreen({
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
@@ -254,7 +281,6 @@ export default function HomeScreen({
           </View>
         </View>
 
-        {/* Interactive Map */}
         <TouchableOpacity
           style={[
             styles.mapContainer,
@@ -271,7 +297,6 @@ export default function HomeScreen({
               showsUserLocation={false}
               showsMyLocationButton={false}
             >
-              {/* User location circle */}
               <Circle
                 center={userLocation}
                 radius={50}
@@ -289,7 +314,6 @@ export default function HomeScreen({
                 </View>
               </Marker>
 
-              {/* Task markers */}
               {tasks.map((task) => {
                 const category = getCategory(task.title);
                 const { pinColor } = getCategoryColor(category);
@@ -303,7 +327,7 @@ export default function HomeScreen({
                     }}
                     title={task.title}
                     description={task.description}
-                    onPress={() => onQuestSelect(task)}
+                    onPress={() => handleTaskSelect(task)}
                   >
                     <View
                       style={[styles.taskMarker, { backgroundColor: pinColor }]}
@@ -331,7 +355,6 @@ export default function HomeScreen({
           </View>
         </TouchableOpacity>
 
-        {/* Quest Cards */}
         <ScrollView
           style={styles.questList}
           contentContainerStyle={styles.questListContent}
@@ -363,12 +386,11 @@ export default function HomeScreen({
               return (
                 <TouchableOpacity
                   key={task.taskID}
-                  onPress={() => onQuestSelect(task)}
+                  onPress={() => handleTaskSelect(task)}
                   style={styles.questCard}
                   activeOpacity={0.7}
                 >
                   <View style={styles.questCardContent}>
-                    {/* Icon */}
                     <View
                       style={[
                         styles.questIcon,
@@ -378,7 +400,6 @@ export default function HomeScreen({
                       <Text style={styles.questEmoji}>{icon}</Text>
                     </View>
 
-                    {/* Content */}
                     <View style={styles.questDetails}>
                       <View style={styles.questHeader}>
                         <Text style={styles.questTitle}>{task.title}</Text>
@@ -390,7 +411,6 @@ export default function HomeScreen({
                         {task.description}
                       </Text>
 
-                      {/* Meta info */}
                       <View style={styles.questMeta}>
                         <Text style={styles.metaText}>📍 {distance}</Text>
                         <Text style={styles.metaPoints}>
@@ -405,7 +425,19 @@ export default function HomeScreen({
           )}
         </ScrollView>
 
-        <BottomNav currentScreen="home" onNavigate={onNavigate} />
+        {selectedTask && (
+          <QuestDetailsModal
+            task={selectedTask}
+            onClose={handleCloseModal}
+            onAccept={handleAcceptQuest}
+          />
+        )}
+
+        <BottomNav
+          currentScreen="home"
+          onNavigate={onNavigate}
+          userType={userType}
+        />
       </View>
     </SafeAreaView>
   );
