@@ -17,8 +17,8 @@ import MapView, { Marker, Region } from 'react-native-maps';
 
 type LatLng = { latitude: number; longitude: number; title?: string; description?: string };
 
-// Preset UCalgary pins for example 
-// actuall pins will be function call from backend 
+// Preset UCalgary pins for example. 
+// actuall pins will be function call from backend. 
 const UCALGARY_POINTS: LatLng[] = [
   { latitude: 51.078365, longitude: -114.128307, title: 'Help Clean' },
   { latitude: 51.0779, longitude: -114.1316, title: 'Study with Me' },
