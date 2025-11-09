@@ -10,7 +10,11 @@ import React from "react";
 import HomeScreen from "./screens/HomeScreen";
 import type { Task } from "./types";
 import LandingPage from "./LandingPage";
-import UserMainDashboard from "./userMainDashboard"; // 
+import UserMainDashboard from "./userMainDashboard"; //
+import ProfileScreen from "./screens/Profile";
+import LeaderboardScreen from "./screens/Leaderboard";
+import OrganizationScreen from "./screens/Organisation";
+import BottomNav from "./components/BottomNav";
 
 type Screen =
   | "splash"
@@ -20,7 +24,7 @@ type Screen =
   | "profile"
   | "leaderboard"
   | "organization"
-  | "userMainDashboard"; // 
+  | "userMainDashboard"; //
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("splash");
@@ -44,7 +48,7 @@ export default function App() {
 
   const handleAuthSuccess = (userData: any) => {
     setUser(userData);
-    setCurrentScreen("userMainDashboard");
+    setCurrentScreen("home");
   };
 
   const handleBackToOnboarding = () => {
@@ -66,12 +70,11 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
+      {/* Screens */}
       {currentScreen === "splash" && <SplashScreen />}
-
       {currentScreen === "onboarding" && (
         <OnboardingScreen onSelectUserType={handleSelectUserType} />
       )}
-
       {currentScreen === "auth" && userType && (
         <AuthScreen
           userType={userType}
@@ -79,17 +82,26 @@ export default function App() {
           onBack={handleBackToOnboarding}
         />
       )}
-
-      {currentScreen === "home" && <LandingPage />}
-
-      {currentScreen === "userMainDashboard" && (
-        <UserMainDashboard />
+      {currentScreen === "home" && (
+        <HomeScreen
+          onQuestSelect={handleQuestSelect}
+          onNavigate={handleNavigate}
+        />
+      )}
+      {currentScreen === "profile" && (
+        <ProfileScreen onNavigate={handleNavigate} />
+      )}
+      {currentScreen === "leaderboard" && (
+        <LeaderboardScreen onNavigate={handleNavigate} />
+      )}
+      {currentScreen === "organization" && (
+        <OrganizationScreen onNavigate={handleNavigate} />
       )}
 
-      {/* other screens still commented out */}
-      {/* {currentScreen === "profile" && <ProfileScreen onNavigate={handleNavigate} />}
-      {currentScreen === "leaderboard" && <LeaderboardScreen onNavigate={handleNavigate} />}
-      {currentScreen === "organization" && <OrganizationScreen onNavigate={handleNavigate} />} */}
+      {/* ✅ Bottom Navigation now lives here
+      {currentScreen !== "splash" && currentScreen !== "onboarding" && (
+        <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
+      )} */}
     </SafeAreaView>
   );
 }
@@ -98,5 +110,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#10B981",
+  },
+  navContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+
+    // Helps on iPhone with gesture bars
+    paddingBottom: 8,
   },
 });

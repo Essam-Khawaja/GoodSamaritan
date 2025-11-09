@@ -138,7 +138,7 @@ export default function HomeScreen({
           </View>
 
           {/* XP Progress bar */}
-          <View style={styles.progressSection}>
+          {/* <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Daily Goal</Text>
               <Text style={styles.progressValue}>475 / 500 XP</Text>
@@ -146,7 +146,7 @@ export default function HomeScreen({
             <View style={styles.progressBarBg}>
               <View style={[styles.progressBarFill, { width: "95%" }]} />
             </View>
-          </View>
+          </View> */}
         </View>
 
         {/* Map Preview */}
@@ -193,8 +193,8 @@ export default function HomeScreen({
               category === "Environment"
                 ? "🗑️"
                 : category === "Community"
-                  ? "❤️"
-                  : "⚠️";
+                ? "❤️"
+                : "⚠️";
             const participants = Math.floor(Math.random() * 15) + 1;
 
             return (
