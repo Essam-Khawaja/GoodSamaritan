@@ -39,7 +39,7 @@ export default function LiveLocationScreen() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Save user's lat/lon here for sending to backend later
+  // Save user's lat/lon here for sending to backend later.
   const [userLatLon, setUserLatLon] = useState<{ lat: number; lon: number } | null>(null);
 
   const mapRef = useRef<MapView | null>(null);
